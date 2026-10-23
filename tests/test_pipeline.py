@@ -11,7 +11,7 @@ from agent.evidence_agent import EvidenceBundle
 from agent.evaluator_agent import EvaluatorAgent
 from agent.investigator_agent import InvestigatorAgent
 from agent.models import Evidence, RunRequest
-from agent.tools_zetaris import ZetarisAdapter, ZetarisQueryResult
+from agent.tools_zetaris import ZetarisAdapter, ZetarisQueryError, ZetarisQueryResult
 
 
 def _hero_bundle() -> EvidenceBundle:
@@ -108,3 +108,51 @@ def test_evidence_loop_is_bounded() -> None:
     evidence_passes = [e for e in response.trace if e.agent == "EvidenceAgent"]
     assert len(evidence_passes) == 3  # initial pass + 2 bounded retries
     assert max(e.retry_count for e in evidence_passes) == 2
+
+
+def test_evaluator_applies_valid_critique_without_changing_cause() -> None:
+    outcome = EvaluatorAgent().evaluate(
+        _hero_bundle(), critique={"hypothesis_id": "H4", "confidence": 0.95}
+    )
+    # A model critique is folded in (confidence moves) but the evidence-derived
+    # cause is unchanged and the critique is marked as applied.
+    assert outcome.critique_applied is True
+    h4 = next(v for v in outcome.verdicts if v.id == "H4")
+    assert h4.confidence == 0.95
+    assert h4.status == "supported"
+    assert outcome.supported_cause == "H4"
+
+
+def test_evaluator_ignores_malformed_critique() -> None:
+    outcome = EvaluatorAgent().evaluate(
+        _hero_bundle(), critique={"hypothesis_id": "H4", "confidence": "sure"}
+    )
+    # Malformed critique -> not trusted; rule-derived confidence is preserved.
+    assert outcome.critique_applied is False
+    h4 = next(v for v in outcome.verdicts if v.id == "H4")
+    assert h4.confidence == 0.8
+
+
+class _FailingAdapter(ZetarisAdapter):
+    """Simulates an adapter / retrieval failure on the very first query."""
+
+    def run_query(self, sql: str, request_id: str) -> ZetarisQueryResult:
+        raise ZetarisQueryError("upstream unavailable")
+
+
+def test_adapter_failure_yields_honest_insufficient_not_a_crash() -> None:
+    settings = Settings.from_environ({ENV_MAX_EVIDENCE_RETRIES: "3"})
+    investigator = InvestigatorAgent(settings, adapter=_FailingAdapter())
+    response = investigator.run(
+        RunRequest(question="why unpaid", invoice_id="INV-004", sample_mode=True)
+    )
+    # The failure is an operating state, surfaced as insufficient (HTTP 200 path),
+    # gated with no consequential action, and traced operationally.
+    assert response.supported_cause == "insufficient_evidence"
+    assert response.blocker_class is None
+    assert response.approval_status == "not_required"
+    assert response.revenue_at_risk == 0
+    error_entries = [e for e in response.trace if e.decision == "adapter_error"]
+    assert error_entries
+    # The raw upstream message is never leaked into the operational trace.
+    assert all("upstream" not in (e.source_result_summary or "") for e in error_entries)

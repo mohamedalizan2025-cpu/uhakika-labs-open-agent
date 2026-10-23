@@ -1,2 +1,4 @@
 contract_id,title,buyer_type,supplier_name,value_tzs,currency,sign_date,start_date,end_date,payment_terms,clause_ref,requires_guarantee,requires_compliance_docs,status
 CTR-001,Utility Grid Expansion Supply,utility,Northbridge Equipment Ltd,520000000,TZS,2025-02-10,2025-03-01,2026-03-01,net 30 after acceptance,CLAUSE-7.2,false,true,active
+CTR-002,Regional Health Depot Supply,health_authority,Coastal Medical Supply Ltd,180000000,TZS,2025-04-15,2025-05-01,2026-05-01,net 30 after acceptance,CLAUSE-4.1,false,true,active
+CTR-003,Municipal Water Works Contract,municipality,Highland Civil Works Ltd,300000000,TZS,2025-01-20,2025-02-01,2026-02-01,net 45 after acceptance,CLAUSE-9.3,true,true,active

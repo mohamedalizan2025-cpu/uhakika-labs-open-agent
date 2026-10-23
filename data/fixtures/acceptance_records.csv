@@ -1,3 +1,4 @@
 certificate_id,contract_id,delivery_id,invoice_id,accepted_by,accepted_date,status
 CERT-018,CTR-001,DEL-009,INV-004,Buyer Site Engineer,2025-09-05,issued
 CERT-015,CTR-001,DEL-007,INV-003,Buyer Site Engineer,2025-06-02,issued
+CERT-020,CTR-003,DEL-013,INV-006,Municipal Works Officer,2025-07-05,issued

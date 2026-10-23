@@ -360,9 +360,59 @@ Next: Phase 5 — harden the evaluator + retry loop (multiple inputs, confidence
         validation, malformed-output / failure-state handling).
 ```
 
+```
+Date/time: Official build window — Session 10 (Phase 5 — evaluator loop hardening)
+Person: Ali (assistant-driven via Qwen 3.8 Flash build tooling only)
+Goal: Harden the loop so multiple distinct inputs resolve correctly and the
+        evaluator tolerates an untrusted model critique and adapter failures —
+        still sample-mode only, with NO live model/provider claim.
+Change: Added two more grounded fixture scenarios so the pipeline is exercised on
+        more than the hero case — INV-005 (contract CTR-002): a partial delivery
+        with no completion date and no acceptance certificate grounds H1 (Delivery
+        incomplete, supplier_controllable, revenue 45,000,000) while compliance is
+        fully submitted (H4 rejected); INV-006 (contract CTR-003): complete delivery
+        + issued acceptance + on-time submission + submitted compliance leave only a
+        payment held with an explicit external block reason, grounding H5 (External
+        buyer / payment-stage blockage, external_payment, revenue 75,000,000) with
+        H1-H4 all rejected. Added agent/critique.py — the defensive model-critique
+        boundary Phase 6 will feed from Nemotron-via-Nightshift: a ModelCritique may
+        carry only a confidence (clamped to [0,1]) and a note, NEVER a status, so a
+        model can never override an evidence-derived verdict; a malformed payload or
+        one naming an unknown hypothesis is ignored. EvaluatorAgent.evaluate now takes
+        an optional critique and reports critique_applied while leaving statuses/causes
+        evidence-derived. InvestigatorAgent now catches ZetarisQueryError as an honest
+        insufficient operating state (no crash / no 500), tracing an adapter_error with
+        the exception TYPE name only — never the raw upstream message.
+Files touched: agent/{critique,evaluator_agent,investigator_agent}.py,
+        data/fixtures/{contracts,invoices,deliveries,acceptance_records,
+        compliance_items,communications,payment_status}.csv, tests/test_critique.py,
+        tests/test_pipeline.py, tests/test_app.py, tests/test_fixtures.py, BUILD_LOG.md.
+Models/tools used: Qoder IDE + Qwen 3.8 Flash (build tooling only — NOT product
+        runtime). No OpenRouter extension installed; no model called.
+Tests: `.venv\Scripts\python.exe -m pytest -q -W error::UserWarning` -> 68 passed
+        (was 50; +18): HTTP e2e for INV-005 -> H1 and INV-006 -> H5 alongside the
+        hero INV-004 -> H4; fixture-integrity locks for the two new scenarios;
+        critique unit tests (clamp, malformed/unknown-target ignored, status never
+        flipped, input not mutated); evaluator integration (valid critique moves
+        confidence but not the cause; malformed critique ignored); adapter-failure
+        path returns insufficient without leaking the upstream message. No network,
+        no credentials, no .env access.
+Result: The retry/evaluator loop is hardened across three distinct grounded inputs
+        and defensively handles untrusted model output and retrieval failures.
+        Still sample-mode only — no UI (Phase 7) and no live model/provider claims.
+Problems: None. The live Nemotron-via-Nightshift critique is still not wired (the
+        validated boundary is applied, not fed by a model) and remains blocked on the
+        runtime token.
+Decision: Keep statuses evidence-derived and treat model output as untrusted input;
+        apply the critique seam now so Phase 6 only needs to source it, not redefine
+        the safety contract.
+Next: Phase 6 — live Nightshift/Nemotron Evaluator critique and Scout Intent routing;
+        this needs the runtime token (expected secret blocker) supplied by the owner.
+```
+
 ---
 
-## Known Open Items (as of the Phase 4 agent thin-slice checkpoint)
+## Known Open Items (as of the Phase 5 evaluator-loop-hardening checkpoint)
 
 - Meterless Nightshift runtime is still downloading/installing — Runtime URL and token `TBD` (env-provided later).
 - Live model route via `METERLESS_MODEL` (Nemotron reached through Nightshift) `TBD` — never claimed without a Nightshift receipt; preferred test route `nvidia/nemotron-3.5-super-vl:free` is configuration only.
@@ -374,5 +424,6 @@ Next: Phase 5 — harden the evaluator + retry loop (multiple inputs, confidence
 - **Phase 4 agent thin slice is in place:** `IntentRouter` (labeled `fallback`), `InvestigatorAgent`/`EvidenceAgent`/`EvaluatorAgent`, and `POST /run` produce a grounded, runtime-derived conclusion (50 tests green incl. HTTP e2e, anti-fabrication and bounded-retry). This is the **sample** path only — no UI and no live model/provider claims.
 - **`fastapi` / `uvicorn` / `httpx` / `pytest` / `pydantic` are installed in `.venv`** (pinned in `requirements.txt`); `agent/main.py` imports FastAPI and `GET /health` is exercised by a real (non-skipped) test.
 - Canonical Zetaris variables are defined (`ZETARIS_REST_URL`, `ZETARIS_ORG_ID`, `ZETARIS_API_KEY`); the owner must populate them in `.env` for live mode (the agent never opens/edits `.env`). The `LiveZetarisAdapter` is a config-gated boundary that additionally defers execution until the Lightning-SQL request/response payload fields (still `TBD`) are validated against a reachable Zetaris service — no fields are invented.
+- **Phase 5 evaluator-loop hardening is in place:** three distinct grounded inputs (INV-004 → H4, INV-005 → H1, INV-006 → H5) resolve end-to-end; a defensive `agent/critique.py` boundary accepts only clamped-confidence, status-free model output (malformed/unknown-target critiques ignored, evidence-derived statuses never overridden); `InvestigatorAgent` turns a `ZetarisQueryError` into an honest insufficient result (no crash, no upstream-message leak). 68 tests green. Still sample-only — no UI, no live model.
 - **`.env` currently exposes only the legacy aliases; the canonical variables are not yet present, so live Zetaris/Nightshift modes cannot run until the owner supplies them.** Sample mode works credential-free.
 - The **sample-mode** investigation pipeline works end-to-end (Phase 4); the **live** product AI path (Zetaris live queries, Nightshift/Nemotron, Scout Intent) is **not yet verified** and is not claimed.

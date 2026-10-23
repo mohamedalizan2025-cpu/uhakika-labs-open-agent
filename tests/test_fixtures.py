@@ -103,3 +103,32 @@ def test_validation_rules_hold_across_fixtures() -> None:
     for item in _load("compliance_items"):
         if item["submitted"] == "true":
             assert item["submitted_date"]
+
+
+def test_second_scenario_invoice_grounds_delivery_incomplete() -> None:
+    # INV-005: a partial delivery with no completion date and no acceptance
+    # certificate grounds H1 (delivery incomplete) while docs are in order.
+    delivery = _one(_load("deliveries"), "delivery_id", "DEL-011")
+    assert delivery["invoice_id"] == "INV-005"
+    assert delivery["status"] != "complete"
+    assert not delivery["delivered_date"]
+    invoices = _load("invoices")
+    assert _one(invoices, "invoice_id", "INV-005")["amount_tzs"] == "45000000"
+    # No acceptance certificate exists for INV-005.
+    assert not [a for a in _load("acceptance_records") if a["invoice_id"] == "INV-005"]
+    # Its compliance item is fully submitted, so H4 is not the cause.
+    cmp007 = _one(_load("compliance_items"), "item_id", "CMP-007")
+    assert cmp007["required"] == "true" and cmp007["submitted"] == "true"
+
+
+def test_third_scenario_invoice_grounds_external_payment_blockage() -> None:
+    # INV-006: every supplier-side step is satisfied (complete delivery, issued
+    # acceptance, on-time submission, submitted compliance) and the only open
+    # signal is a payment held with an explicit external block reason -> H5.
+    assert _one(_load("deliveries"), "delivery_id", "DEL-013")["status"] == "complete"
+    assert _one(_load("acceptance_records"), "certificate_id", "CERT-020")["status"] == "issued"
+    payment = _one(_load("payment_status"), "payment_id", "PAY-014")
+    assert payment["invoice_id"] == "INV-006"
+    assert payment["stage"] in {"held", "under_review", "rejected", "not_submitted"}
+    assert payment["external_block_reason"]
+    assert int(payment["amount_paid_tzs"]) == 0

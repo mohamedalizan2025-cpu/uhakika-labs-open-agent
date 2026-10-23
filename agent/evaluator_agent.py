@@ -57,12 +57,17 @@ class EvaluatorOutcome:
     cause_evidence_ids: list[str]
     insufficient: bool
     resolution_note: Optional[str]
+    # True only when a validated model critique adjusted a verdict's confidence.
+    # It never changes a status — those stay evidence-derived (see agent.critique).
+    critique_applied: bool = False
 
 
 class EvaluatorAgent:
     """Derives per-hypothesis verdicts and the supported cause from evidence."""
 
-    def evaluate(self, bundle: EvidenceBundle) -> EvaluatorOutcome:
+    def evaluate(
+        self, bundle: EvidenceBundle, critique: Optional[object] = None
+    ) -> EvaluatorOutcome:
         invoice_id = (bundle.invoice or {}).get("invoice_id")
 
         verdicts = [
@@ -72,6 +77,16 @@ class EvaluatorAgent:
             self._h4(bundle, invoice_id),
             self._h5(bundle),
         ]
+
+        # Optionally fold in a model critique. Imported lazily so this module
+        # (which critique.py depends on) has no import-time cycle. The critique
+        # may only adjust confidence; statuses stay evidence-derived, and a
+        # malformed / unknown-target critique is ignored.
+        critique_applied = False
+        if critique is not None:
+            from agent.critique import apply_critique
+
+            verdicts, critique_applied = apply_critique(verdicts, critique)
 
         by_id = {v.id: v for v in verdicts}
         supported = [v for v in verdicts if v.status == "supported"]
@@ -108,6 +123,7 @@ class EvaluatorAgent:
             cause_evidence_ids=cause_evidence_ids,
             insufficient=is_insufficient,
             resolution_note=resolution_note,
+            critique_applied=critique_applied,
         )
 
     # --- per-hypothesis rules -------------------------------------------

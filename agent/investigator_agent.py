@@ -27,7 +27,7 @@ from agent.models import (
     TraceEntry,
 )
 from agent.router import IntentRouter
-from agent.tools_zetaris import ZetarisAdapter
+from agent.tools_zetaris import ZetarisAdapter, ZetarisQueryError
 
 _LABEL_BY_ID = {
     "H1": "Delivery incomplete",
@@ -79,7 +79,38 @@ class InvestigatorAgent:
         evidence_records = []
         retries = 0
         while True:
-            bundle = self._evidence_agent.gather(routed.invoice_id)
+            try:
+                bundle = self._evidence_agent.gather(routed.invoice_id)
+            except ZetarisQueryError as exc:
+                # Adapter / retrieval failure is an honest operating state, not a
+                # crash. Record it operationally (type name only — never the raw
+                # message, which could carry configured identifiers) and stop with
+                # an insufficient result rather than fabricate a conclusion.
+                note = (
+                    f"evidence retrieval failed ({type(exc).__name__}) — "
+                    "insufficient evidence to reach a grounded conclusion"
+                )
+                trace.add(
+                    ts=_now(),
+                    agent="EvidenceAgent",
+                    action="retrieve_evidence",
+                    tool="zetaris.run_query",
+                    decision="adapter_error",
+                    source_result_summary=note,
+                    retry_count=retries,
+                )
+                evidence_records = []
+                outcome = EvaluatorOutcome(
+                    verdicts=[],
+                    supported_cause=None,
+                    blocker_class=None,
+                    revenue_at_risk=0,
+                    currency="TZS",
+                    cause_evidence_ids=[],
+                    insufficient=True,
+                    resolution_note=note,
+                )
+                break
             evidence_records = bundle.evidence
             trace.add(
                 ts=_now(),

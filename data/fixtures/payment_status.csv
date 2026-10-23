@@ -1,3 +1,5 @@
 payment_id,contract_id,invoice_id,stage,amount_paid_tzs,currency,last_update,external_block_reason,source
 PAY-011,CTR-001,INV-004,under_review,0,TZS,2025-09-16,Payment held pending tax clearance from buyer finance,Buyer payment portal
 PAY-008,CTR-001,INV-003,paid,90000000,TZS,2025-07-05,,Buyer payment portal
+PAY-012,CTR-002,INV-005,pending,0,TZS,2025-08-29,,Buyer payment portal
+PAY-014,CTR-003,INV-006,held,0,TZS,2025-07-12,Buyer treasury disbursement queued pending budget allocation,Buyer payment portal
