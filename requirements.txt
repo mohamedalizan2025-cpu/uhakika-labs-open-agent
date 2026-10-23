@@ -1,5 +1,6 @@
 # Uhakika — approved direct backend dependencies (installed inside .venv).
-# Only direct dependencies are pinned here; never a machine-specific pip freeze.
+# Direct dependencies are pinned here (never a machine-specific pip freeze).
+# One transitive (`starlette`) is also pinned for reproducibility — see below.
 #
 # NOTE: python-dotenv is intentionally NOT used. The application must never open
 # or read `.env` (AGENTS.md §3 security), so configuration reads `os.environ`
@@ -10,3 +11,9 @@ uvicorn==0.54.0
 httpx==0.28.1
 pytest==9.1.1
 pydantic==2.14.1
+
+# Reproducibility pin (Phase 8): `starlette` is a transitive dependency of
+# FastAPI, but its TestClient import emits a version-dependent deprecation
+# warning, so a drifting transitive breaks a clean-clone test run. Pinning the
+# exact ASGI version the suite is validated against keeps CI == local.
+starlette==1.9.0

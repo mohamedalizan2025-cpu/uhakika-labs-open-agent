@@ -504,6 +504,29 @@ Next: Phase 9 — submission PREPARATION (public README, architecture diagram, s
         blocked on the runtime secret.
 ```
 
+```
+Date/time: Official build window — Session 12 addendum (CI reproducibility defect)
+Person: Ali (assistant-driven via Qwen 3.8 Flash build tooling only)
+Goal: The first CI runs on GitHub failed — a clean clone must actually be green,
+        not just my local venv. Fix the drift and re-verify.
+Change: Root cause: `starlette` is an unpinned FastAPI transitive; on a fresh CI
+        install it resolved to a newer release whose `TestClient` import emits a
+        `StarletteDeprecationWarning` (a UserWarning subclass), which the strict
+        `-W error::UserWarning` gate promoted into a collection error. My local venv
+        has starlette 1.9.0 (no such warning), so the suite was green here but not
+        there. Pinned `starlette==1.9.0` (the validated version) so CI == local.
+        This is a deliberate reproducibility pin, not a machine freeze.
+Files touched: requirements.txt, BUILD_LOG.md.
+Tests: local suite stays green (68) against the pinned starlette; the moved
+        `phase-08-hardening` tag now points at a commit whose CI actually passes.
+Result: Reproducibility gate is honest — the exact failure the phase exists to
+        prevent (works-here/fails-there) was caught by CI and fixed at the pin level.
+Decision: Re-pointed the freshly-created `phase-08-hardening` tag (created moments
+        earlier in this same session for a checkpoint that was not yet green) to the
+        fix commit, rather than leaving a red tag. No shared/published history was
+        rewritten.
+```
+
 ---
 
 ## Known Open Items (as of the Phase 8 hardening checkpoint)
