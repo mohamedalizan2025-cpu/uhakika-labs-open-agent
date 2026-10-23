@@ -81,7 +81,7 @@ class RunResponse(BaseModel):
     case_id: str
     revenue_at_risk: int
     supported_cause: str
-    blocker_class: BlockerClass
+    blocker_class: Optional[BlockerClass] = None
     rejected_hypotheses: list[RejectedHypothesis] = Field(default_factory=list)
     evidence: list[Evidence] = Field(default_factory=list)
     recommendation: str

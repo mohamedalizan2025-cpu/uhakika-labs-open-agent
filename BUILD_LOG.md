@@ -314,18 +314,65 @@ Next: Phase 4 — evidence-grounded agent thin slice (Investigator/Evidence/Eval
         over the sample adapter behind a single judge-facing POST /run.
 ```
 
+```
+Date/time: Official build window — Session 9 (Phase 4 — evidence-grounded agent thin slice)
+Person: Ali (assistant-driven via Qwen 3.8 Flash build tooling only)
+Goal: A real sample-mode pipeline behind POST /run: routing -> InvestigatorAgent ->
+        EvidenceAgent -> Zetaris adapter -> EvaluatorAgent -> supported/rejected
+        hypotheses -> recommendation -> human-approval state -> operational trace.
+        Conclusions derived at runtime; no stored hero answer.
+Change: agent/router.py IntentRouter (deterministic; label always `fallback`, never
+        Scout Intent). agent/hypotheses.py H1-H5 catalog (ids + labels only). agent/
+        evidence_agent.py EvidenceAgent — retrieves through ZetarisAdapter (one
+        statement per call, a fresh uuid4 request id), normalizes typed facts +
+        cited Evidence records, treats "no rows" as a queryable absence. agent/
+        evaluator_agent.py EvaluatorAgent — applies DATA_CONTRACT §11 rules to derive
+        supported/rejected/insufficient verdicts + confidence + evidence ids; primary
+        cause priority H4>H1>H2>H3>H5; blocker-class map; revenue at risk =
+        amount - paid. agent/investigator_agent.py InvestigatorAgent — owns the case,
+        runs the BOUNDED evidence loop honoring MAX_EVIDENCE_RETRIES, drafts a
+        recommendation citing evidence, sets the approval gate (pending for a
+        consequential cause, not_required when insufficient), and emits a sanitized
+        operational trace. Wired POST /run in agent/main.py (RunRequest -> RunResponse)
+        and made RunResponse.blocker_class optional for the insufficient path. The
+        sample path makes NO model/provider call — grounding is by evidence rules, so
+        anti-fabrication holds without a model; trace model_route stays None.
+Files touched: agent/{router,hypotheses,evidence_agent,evaluator_agent,
+        investigator_agent,main,models}.py, tests/test_app.py (rewritten to HTTP incl.
+        /run), tests/test_pipeline.py, tests/test_router.py, BUILD_LOG.md.
+Models/tools used: Qoder IDE + Qwen 3.8 Flash (build tooling only — NOT product
+        runtime). No OpenRouter extension installed.
+Tests: `.venv\Scripts\python.exe -m pytest -q -W error::UserWarning` -> 50 passed
+        (was 42; +8 Phase 4): HTTP e2e hero INV-004 (revenue 126000000; H4 supported
+        via CMP-005 + CLAUSE-7.2; H1-H3 rejected; approval pending; trace model_route
+        None), unknown-invoice -> insufficient (never fabricated), remove-CMP-005 ->
+        H4 downgraded, a corroborating communication alone is not proof, bounded
+        retries (3 passes at MAX_EVIDENCE_RETRIES=2), router always labeled fallback.
+        No network, no credentials, no .env access.
+Result: Sample-mode end-to-end pipeline runs and derives its conclusion at runtime.
+        No UI yet (Phase 7). Live Zetaris querying and the live Evaluator model remain
+        deferred (Phase 6); sample mode is NOT sponsor proof.
+Problems: None new. The live routing / Nemotron-via-Nightshift critique path is still
+        blocked on the runtime token (not invented here).
+Decision: Keep Evaluator grounding deterministic so conclusions depend on evidence,
+        not an unverified model; add Nightshift/Nemotron/Scout Intent only in Phase 6.
+Next: Phase 5 — harden the evaluator + retry loop (multiple inputs, confidence
+        validation, malformed-output / failure-state handling).
+```
+
 ---
 
-## Known Open Items (as of the Phase 3 Zetaris evidence-layer checkpoint)
+## Known Open Items (as of the Phase 4 agent thin-slice checkpoint)
 
 - Meterless Nightshift runtime is still downloading/installing — Runtime URL and token `TBD` (env-provided later).
 - Live model route via `METERLESS_MODEL` (Nemotron reached through Nightshift) `TBD` — never claimed without a Nightshift receipt; preferred test route `nvidia/nemotron-3.5-super-vl:free` is configuration only.
 - **Scout Intent** is the REQUIRED live-routing Engine — **not yet implemented**; a deterministic `fallback` router is used and labeled until verified.
 - Backend (Python/FastAPI) + frontend (React/TypeScript/Vite + Tailwind + TanStack Query + Lucide) are **installed and build cleanly**. shadcn/ui component init is deferred to Phase 7 (prerequisites configured). Internal API routes beyond `/health` still `TBD`.
-- Judge-facing `POST /run` endpoint `TBD` — documented conceptually, **planned, no code exists**.
+- Judge-facing `POST /run` is **implemented for the sample-mode pipeline** (routing → Investigator → Evidence → Evaluator → recommendation + approval gate + trace, conclusions derived at runtime). The **live** agent inference (Nemotron critique via Nightshift, Scout Intent routing) is still deferred to Phase 6.
 - **Phase 2 foundation exists but runs no features:** canonical config module, Pydantic domain/API contracts, sanitized logging, Zetaris/Nightshift adapter *interfaces*, pytest suite (19 green incl. `/health`), `.env.example`, and the frontend scaffold are in place; the investigation logic and `POST /run` are still not implemented.
-- **Phase 3 evidence layer (sample) is in place:** synthetic CSV hero fixtures + provenance markers, a credential-free `SampleZetarisAdapter` over the same `run_query(sql, request_id)` contract, a factory, and integrity tests (42 green). It is a data boundary, **not** an investigation feature — no agent pipeline / `POST /run` yet.
+- **Phase 3 evidence layer (sample) is in place:** synthetic CSV hero fixtures + provenance markers, a credential-free `SampleZetarisAdapter` over the same `run_query(sql, request_id)` contract, a factory, and integrity tests.
+- **Phase 4 agent thin slice is in place:** `IntentRouter` (labeled `fallback`), `InvestigatorAgent`/`EvidenceAgent`/`EvaluatorAgent`, and `POST /run` produce a grounded, runtime-derived conclusion (50 tests green incl. HTTP e2e, anti-fabrication and bounded-retry). This is the **sample** path only — no UI and no live model/provider claims.
 - **`fastapi` / `uvicorn` / `httpx` / `pytest` / `pydantic` are installed in `.venv`** (pinned in `requirements.txt`); `agent/main.py` imports FastAPI and `GET /health` is exercised by a real (non-skipped) test.
 - Canonical Zetaris variables are defined (`ZETARIS_REST_URL`, `ZETARIS_ORG_ID`, `ZETARIS_API_KEY`); the owner must populate them in `.env` for live mode (the agent never opens/edits `.env`). The `LiveZetarisAdapter` is a config-gated boundary that additionally defers execution until the Lightning-SQL request/response payload fields (still `TBD`) are validated against a reachable Zetaris service — no fields are invented.
 - **`.env` currently exposes only the legacy aliases; the canonical variables are not yet present, so live Zetaris/Nightshift modes cannot run until the owner supplies them.** Sample mode works credential-free.
-- No Uhakika **investigation/agent** functionality implemented yet (the Phase 3 layer is a credential-free evidence adapter over fixtures, not a product feature).
+- The **sample-mode** investigation pipeline works end-to-end (Phase 4); the **live** product AI path (Zetaris live queries, Nightshift/Nemotron, Scout Intent) is **not yet verified** and is not claimed.
