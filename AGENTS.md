@@ -38,11 +38,11 @@ We help suppliers avoid losing or unnecessarily delaying contract revenue becaus
 
 1. **Zetaris is the mandatory data layer.** All core business evidence (contracts, invoices, deliveries, acceptance, correspondence, guarantees, payment status) must be retrieved **through Zetaris**. Never bypass Zetaris to reach an ad-hoc data source for business evidence.
 2. **Meterless Nightshift is the product AI runtime/provider.** Never bypass Nightshift for the production AI runtime. Qoder/Qwen are **build-time tooling only** and must not become the product runtime.
-3. **Nemotron routing is configurable.** Do **not** hardcode or invent a Nemotron model ID, provider, or runtime URL. Model/provider routing must remain configurable through environment variables supplied later.
+3. **Model routing is configurable via `METERLESS_MODEL`.** Do **not** hardcode or invent a model ID, provider, or runtime URL in business logic. The live model route is read from the `METERLESS_MODEL` environment variable and served through Meterless Nightshift. **Nemotron** (reached via Nightshift) is the intended model powering **EvaluatorAgent's** product-side evidence critique. **OpenRouter is a provider *behind* Nightshift — never call it directly from application code and never install an OpenRouter extension.** The preferred route for testing is documented as `nvidia/nemotron-3.5-super-vl:free`, but that is configuration only, and **no provider/model may be claimed unless the Nightshift receipt proves it.**
 4. **At least two named agents must perform distinct work.** The final system must visibly demonstrate: delegation, evidence retrieval, critique, retry/branching, tool use, grounded conclusions, and trace logs.
 5. **No giant, unapproved changes.** Prefer small, reversible commits. Do not refactor or rewrite large amounts of code without explicit human approval.
 6. **Undecided components are marked `TBD`.** Do not claim a technology/component is used unless it is installed, configured, and verified. Never assert unimplemented features as working.
-7. **Three core agents only in V0.** The V0 uses `InvestigatorAgent`, `EvidenceAgent`, `EvaluatorAgent`. `ActionAgent` is **STRETCH** — in V0 the recommendation + human-approval gate is handled by the `InvestigatorAgent`/orchestrator. The **Intent Router is NOT one of our agents** — it is a routing stage optionally powered by the **Meterless Engine "Scout Intent"** (a candidate, `TBD`). Only Scout Intent / World Model may be called "Meterless Engines"; never label our agents or the Intent Router as Meterless Engines.
+7. **Three core agents only in V0.** The V0 uses `InvestigatorAgent`, `EvidenceAgent`, `EvaluatorAgent`. `ActionAgent` is **DEFERRED/STRETCH** — in V0 the recommendation + human-approval gate is handled by the `InvestigatorAgent`/orchestrator. The **Intent Router is NOT one of our agents** — it is a routing stage. For the **live** path the required Meterless Engine **"Scout Intent"** powers routing; until Scout Intent is wired and verified, use a deterministic fallback router that must be labeled `fallback` and **never** presented as Scout Intent. Only Scout Intent / World Model may be called "Meterless Engines"; **World Model is deferred** (out of V0); never label our agents or the Intent Router as Meterless Engines.
 8. **Never hardcode final conclusions.** Golden/canonical outputs (e.g., the PRD §7 result) are **test fixtures only**. The supported cause, rejected hypotheses, revenue-at-risk, and recommendation must be **derived from evidence at runtime** on every run — in live mode AND in sample mode. `SAMPLE_MODE` must never return a stored/pre-written answer.
 
 Target agent pipeline — **LOCKED V0** (direction, not yet built — see `ARCHITECTURE.md`):
@@ -50,7 +50,7 @@ Target agent pipeline — **LOCKED V0** (direction, not yet built — see `ARCHI
 ```
 User
 → POST /run
-→ Intent Router   (routing stage; optionally powered by Meterless Engine "Scout Intent" — TBD. NOT a core agent)
+→ Intent Router   (routing stage; LIVE path powered by Meterless Engine "Scout Intent" — required, TBD until verified; deterministic fallback labeled `fallback`. NOT a core agent)
 → InvestigatorAgent   (frames case, generates hypotheses, orchestrates + holds shared case state + approval gate)
 → EvidenceAgent       (Zetaris-only retrieval)
 → Zetaris
@@ -76,22 +76,21 @@ User
 - **Demo/screenshots must hide all credentials.** Mask or crop any key material before capture.
 - **Never give build tooling (Qoder/Qwen) the product's NVIDIA/Nightshift provider credentials.** Those secrets belong only to the product runtime and its environment.
 
-Current environment variable **names** (values are intentionally not recorded here): `METERLESS_BASE_URL`, `METERLESS_API_KEY`, `NEMOTRON_MODEL`. Any additional Meterless/Nightshift variables will be supplied later via `.env` — do not invent their values.
+**Canonical environment-variable names** (values are intentionally never recorded here, and `.env` is never opened, read, or printed): `METERLESS_BASE_URL`, `METERLESS_RUNTIME_TOKEN`, `METERLESS_MODEL`, `ZETARIS_REST_URL`, `ZETARIS_ORG_ID`, `ZETARIS_API_KEY`, `SAMPLE_MODE`, `MAX_EVIDENCE_RETRIES`. These eight are the **only supported names.** The following are **prohibited legacy aliases** and must never be supported, documented, or silently migrated: `METERLESS_API_KEY`, `NEMOTRON_MODEL`, `ZETARIS_BASE_URL`. Config loading must **ignore legacy aliases** and report missing variables by **name only** (never a value).
 
 ---
 
 ## 4. Sponsor / Technical Rules
 
-- **Zetaris:** data layer is mandatory and currently running locally, verified 9/9.
-  - Use the **REST API** for the application. Expected REST base URL: `http://localhost:8888/api/v1.0`.
-  - SQL endpoint pattern: `/sql-editor/sqls/run`.
-  - **Every query must use a fresh request ID.** Reusing a request ID is a bug.
-  - **Lightning SQL rules apply.** **One SQL statement per call** — never batch multiple statements in a single call.
-  - Never print credentials.
-- **Meterless Nightshift:** must be the primary AI runtime/provider. Setup is **still in progress**. Do **not** invent the final Runtime URL or token; they arrive via environment variables later. Mark runtime integration `TBD` until verified.
-- **Meterless Engine:** at least one Engine must power a real feature. Likely first candidate: **Scout Intent**; possible later candidate: **World Model**. **Do not claim either is implemented yet.**
-- **NVIDIA / Nemotron:** desired reasoning model. Direct NVIDIA verification is currently problematic for Tanzania. Alternative Nightshift-compatible Nemotron routing is under investigation. Do not hardcode or invent a model ID; keep routing configurable.
-- **Coding environment:** Qoder IDE with a Qwen model assisting development. **Cursor is optional. Qoder is an allowed coding tool.** **Qwen/Qoder is BUILD tooling only** and does **NOT** replace the product runtime. The product runtime must remain Meterless Nightshift. Never pass NVIDIA/Nightshift provider credentials to build tooling.
+- **Zetaris:** mandatory live business-data layer, currently running locally, verified 9/9.
+  - Configured through the canonical variables **`ZETARIS_REST_URL`**, **`ZETARIS_ORG_ID`**, **`ZETARIS_API_KEY`** (values live only in `.env`; never printed). Expected local REST base value: `http://localhost:8888/api/v1.0`.
+  - SQL endpoint pattern: `/sql-editor/sqls/run`. **One SQL statement per call.** **A fresh request ID per query** (reuse is a bug). **Lightning SQL rules apply.** Reproducible synthetic CSV fixtures back the V0 datasets and are exposed through Zetaris for live mode.
+  - Never print credentials or authorization headers.
+- **Meterless Nightshift:** the primary AI runtime/provider; all product AI traffic must pass through it. Configured through **`METERLESS_BASE_URL`**, **`METERLESS_RUNTIME_TOKEN`** (secret), and **`METERLESS_MODEL`**. Do not invent the runtime URL/token/model — they arrive via `.env`. **OpenRouter is a provider *behind* Nightshift: never call it directly from application code and never install an OpenRouter extension.** Mark runtime integration `TBD` until a Nightshift receipt verifies it.
+- **Meterless Engine:** **Scout Intent** is the **required** Engine powering the **live** intent-routing stage. Until Scout Intent is wired and verified, use a deterministic fallback router labeled `fallback` and **never** claim it is Scout Intent. **World Model is deferred** (out of V0). Do not claim Scout Intent is live until verified.
+- **NVIDIA / Nemotron:** Nemotron is the desired reasoning model, reached **through Nightshift** (direct NVIDIA verification is problematic for Tanzania). It powers **EvaluatorAgent's** product-side evidence critique. The live route is read from **`METERLESS_MODEL`** — never hardcode it in business logic. Preferred route for testing: `nvidia/nemotron-3.5-super-vl:free` (documented default, configuration only). **Never claim a provider/model unless the Nightshift receipt proves it.**
+- **Sample mode is credential-free but insufficient as sponsor proof.** `SAMPLE_MODE` and the fixture adapter run without any credentials; a sample-mode run **never** counts as proof of a Zetaris / Nightshift / Scout Intent / Nemotron integration. Sponsor-tech claims require a verified live receipt.
+- **Coding environment:** Qoder IDE with a **Qwen 3.8 Flash** model assisting development. **Cursor is optional; Qoder is an allowed coding tool.** **Qwen/Qoder is BUILD tooling only** and does **NOT** replace the product runtime, which must remain Meterless Nightshift. Never pass NVIDIA/Nightshift provider credentials to build tooling.
 
 ---
 
@@ -131,13 +130,13 @@ Current environment variable **names** (values are intentionally not recorded he
 
 ## 8. Coding Standards
 
-- **Do not create Python code, frontend code, or implement APIs** during the documentation/setup phase. Code begins only when an approved phase in `BUILD_PLAN.md` says so.
+- During the **documentation/setup phase only** is product code forbidden. Python/Frontend/API code is written only in an approved build phase of `BUILD_PLAN.md` (the build phases are now underway).
 - Follow the folder structure in `ARCHITECTURE.md` §Likely Folder Structure. Keep responsibilities separated per agent/module.
 - Write functions with a single clear responsibility; name things after the domain (`EvidenceAgent`, `hypothesis`, `receivable`), not generic placeholders.
 - Handle errors explicitly (network, Zetaris request failures, empty results, model unavailability). No silent failures. A failed retrieval must surface as "evidence not obtained," never as a fabricated result.
 - Keep configuration in environment variables and a single config module; do not scatter literals. Never inline secrets or model IDs.
 - Add type hints where practical and docstrings for public functions. Match any style the existing (empty) stubs and teammates converge on.
-- Do not add dependencies/packages unless a phase explicitly approves them. **No package installs during setup.**
+- Add dependencies only when an approved phase authorizes them. Installs happen **only inside the project environments** — the existing `.venv` (Python) and `frontend/` (Node) — never globally. `requirements.txt` and `package-lock.json` record the approved direct dependencies (never a machine-specific full `pip freeze`).
 - Comments explain *why*, not *what*. No dead code, no placeholder "TODO-forever."
 - Keep prompts (if used) in `prompts/` rather than embedded as sprawling inline strings once implementation starts.
 

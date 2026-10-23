@@ -15,7 +15,7 @@ Two orthogonal pillars:
 ```mermaid
 flowchart TD
   U[User / UI] --> RUN[POST /run]
-  RUN --> IR[Intent Router<br/>routing stage; optionally Meterless Engine: Scout Intent - TBD<br/>NOT a core agent]
+  RUN --> IR[Intent Router<br/>routing stage; LIVE powered by Meterless Engine: Scout Intent (required, TBD)<br/>fallback labeled<br/>NOT a core agent]
   IR --> INV[InvestigatorAgent<br/>hypotheses + orchestration + shared case state]
   INV --> EA[EvidenceAgent]
   EA --> Z[(Zetaris Data Layer<br/>REST + SQL)]
@@ -31,18 +31,18 @@ flowchart TD
   EA -.trace.-> LOG
   EV -.trace.-> LOG
   RT[Meterless Nightshift<br/>AI Runtime - TBD] -.powers.-> INV
-  RT -.powers.-> EV
-  NM[Nemotron reasoning route<br/>configurable - TBD] -.served via.-> RT
+  RT -.powers (Nemotron via METERLESS_MODEL).-> EV
+  NM[Nemotron route via Nightshift<br/>METERLESS_MODEL - TBD] -.served via.-> RT
 ```
 
-**Runtime vs. build tooling:** Qoder/Qwen assist development only. The **product AI runtime is Meterless Nightshift** (integration `TBD` until verified). Reasoning model routing (Nemotron) is **configurable** and must not hardcode IDs/endpoints.
+**Runtime vs. build tooling:** Qoder/Qwen (Qwen 3.8 Flash) assist development only. The **product AI runtime is Meterless Nightshift** (integration `TBD` until a Nightshift receipt verifies it). The live model route is read from **`METERLESS_MODEL`** and must never be hardcoded; **Nemotron (via Nightshift) powers EvaluatorAgent's evidence critique**. **OpenRouter may sit as a provider *behind* Nightshift — never call it directly from application code and never install an OpenRouter extension.**
 
 ---
 
 ## 2. Request Lifecycle
 
 1. **Ingest question via `POST /run`** — a judge/UI calls the single endpoint with "Why hasn't invoice X been paid?" (or the hero TZS 126,000,000 invoice).
-2. **Intent routing** — the **Intent Router stage** classifies the request and selects the investigation playbook. It is a routing stage, **not one of our agents**; when integrated it may be powered by the Meterless Engine **Scout Intent** (`TBD`, deterministic fallback otherwise).
+2. **Intent routing** — the **Intent Router stage** classifies the request and selects the investigation playbook. It is a routing stage, **not one of our agents**; for the **live** path it is powered by the required Meterless Engine **Scout Intent** — until Scout Intent is wired and verified, a deterministic fallback router is used and clearly labeled `fallback` (never Scout Intent).
 3. **Shared case state initialized** — an investigation `case` object (see §3b) is created to carry operational state between agents.
 4. **Hypothesis generation** — InvestigatorAgent enumerates competing hypotheses H1–H5.
 5. **Evidence retrieval** — EvidenceAgent issues Zetaris queries (fresh request ID each, one SQL statement per call) to gather records relevant to each hypothesis.
@@ -56,7 +56,7 @@ flowchart TD
 ```mermaid
 sequenceDiagram
   participant J as Judge/UI (POST /run)
-  participant IR as Intent Router (stage; Scout Intent TBD)
+  participant IR as Intent Router (stage; Scout Intent for live / fallback)
   participant INV as InvestigatorAgent
   participant EA as EvidenceAgent
   participant Z as Zetaris
@@ -88,10 +88,10 @@ At least **two named agents perform distinct work**. **V0 uses three core agents
 
 | Agent | Responsibility | Inputs | Outputs |
 |---|---|---|---|
-| **Intent Router** — *routing stage, NOT a core agent* (optionally powered by Meterless Engine **Scout Intent**, `TBD`) | Classify request; select investigation playbook | user question / `POST /run` payload | routed task + case init |
+| **Intent Router** — *routing stage, NOT a core agent* (live path powered by the required Meterless Engine **Scout Intent**; deterministic `fallback` router until verified) | Classify request; select investigation playbook | user question / `POST /run` payload | routed task + case init |
 | **InvestigatorAgent** *(core)* | Frame the case; hold the **shared case state**; generate competing hypotheses; orchestrate the loop; decide when to stop; draft recommendation + run approval gate | routed task, evidence status | hypothesis set, conclusion selection, recommendation, approval state |
 | **EvidenceAgent** *(core)* | Retrieve and normalize evidence via Zetaris only | hypothesis evidence needs | evidence records with IDs + source summaries |
-| **EvaluatorAgent** *(core)* | Critique: score each hypothesis vs. evidence; reject unsupported; flag insufficiency | hypotheses + evidence | supported/rejected verdicts + confidence |
+| **EvaluatorAgent** *(core)* | Critique: score each hypothesis vs. evidence; reject unsupported; flag insufficiency (live critique uses **Nemotron through Nightshift**) | hypotheses + evidence | supported/rejected verdicts + confidence |
 | **ActionAgent** *(STRETCH)* | Separate proposal + follow-up/verification | supported cause | recommendation + approval state (folded into InvestigatorAgent in V0) |
 
 Distinct capabilities the design must *visibly demonstrate*: **delegation** (Investigator→Evidence→Evaluator), **evidence retrieval** (Zetaris), **critique** (Evaluator rejecting hypotheses), **retry/branching** (bounded evidence loop), **tool use** (Zetaris query tool), **grounded conclusions** (evidence IDs), **shared context** (the case object below), and **trace logs**.
@@ -149,11 +149,11 @@ Rules:
 
 - **All core business evidence flows through Zetaris.** No bypass sources for business evidence.
 - Local instance, **verified 9/9** during setup.
-- **REST API** for the application. Expected base URL: `http://localhost:8888/api/v1.0`.
+- **REST API** configured via the canonical variables `ZETARIS_REST_URL` (with `ZETARIS_ORG_ID`, `ZETARIS_API_KEY`). Expected local REST base value: `http://localhost:8888/api/v1.0`.
 - **SQL endpoint pattern:** `/sql-editor/sqls/run`.
 - **Every query uses a fresh request ID.** **One SQL statement per call.** **Lightning SQL rules apply.**
 - Designed for **federation** across the logical datasets (see `DATA_CONTRACT.md`: contracts, invoices, deliveries, acceptance_records, communications, **compliance_items**, payment_status; guarantees optional).
-- Credentials are provided via environment/config only — **never printed**.
+- Credentials (`ZETARIS_ORG_ID`, `ZETARIS_API_KEY`) are provided via environment/config only — **never printed**. Reproducible synthetic CSV fixtures back the datasets and are exposed through Zetaris for live mode.
 
 Conceptual EvidenceAgent → Zetaris call:
 ```
@@ -170,22 +170,22 @@ POST http://localhost:8888/api/v1.0/sql-editor/sqls/run
 - Nightshift must be the **primary AI runtime/provider** for the product.
 - Setup is **in progress**. The final **Runtime URL and token will be supplied via environment variables later** and are **`TBD`** — do not invent them.
 - Agents that require generative reasoning (hypothesis framing, evaluation narrative, recommendation drafting) run through Nightshift.
-- **Configuration surface (names only):** `METERLESS_BASE_URL`, `METERLESS_API_KEY`, `NEMOTRON_MODEL` (values not recorded). Additional Nightshift vars arrive later.
+- **Configuration surface (canonical names only):** `METERLESS_BASE_URL`, `METERLESS_RUNTIME_TOKEN` (secret), `METERLESS_MODEL` (values not recorded). **OpenRouter may sit behind Nightshift as a provider; never call it directly from application code, and never install an OpenRouter extension.**
 
 ---
 
-## 7. Nemotron Role (reasoning model — configurable, `TBD`)
+## 7. Nemotron Role (reasoning model via Nightshift — configurable, `TBD`)
 
-- Nemotron is the **desired reasoning model**.
+- Nemotron is the **desired reasoning model**, reached **through Nightshift**, and is the intended model powering **EvaluatorAgent's** evidence critique.
 - Direct NVIDIA verification is currently problematic for Tanzania; **Nightshift-compatible Nemotron routing is being investigated.**
-- **No hardcoded model IDs / endpoints.** Model selection is driven by `NEMOTRON_MODEL` and runtime routing config, resolved at runtime through Nightshift.
+- **No hardcoded model IDs / endpoints.** Model selection is driven by **`METERLESS_MODEL`** and runtime routing config, resolved at runtime through Nightshift. The preferred test route `nvidia/nemotron-3.5-super-vl:free` is configuration only; **a provider/model is claimed only when the Nightshift receipt proves it.**
 - Until verified, treat concrete model/route as `TBD` and never claim it in the demo beyond what actually ran.
 
 ---
 
 ## 8. Meterless Engine Role
 
-- **At least one Engine must power a real feature.** Likely first candidate: **Scout Intent** (intent routing in §3). Possible later candidate: **World Model** (scenario simulation — long-term, out of V0).
+- **Scout Intent is the required Meterless Engine** powering the **live** intent-routing stage (§3). Until it is wired and verified, a deterministic `fallback` router is used and **never** labeled Scout Intent. **World Model is deferred** (scenario simulation — long-term, out of V0).
 - **Do not claim either Engine is implemented yet** — mark `TBD` until a real, verified feature exists.
 
 ---
@@ -194,10 +194,10 @@ POST http://localhost:8888/api/v1.0/sql-editor/sqls/run
 
 ```mermaid
 flowchart LR
-  subgraph FE[Frontend - TBD stack]
-    UI[Investigation UI<br/>screens in PRD §11]
+  subgraph FE[Frontend - React/TS/Vite]
+    UI[Investigation Workspace<br/>+ Trace Panel]
   end
-  subgraph BE[Backend - TBD stack]
+  subgraph BE[Backend - Python/FastAPI]
     API[App API]
     ORCH[Agent Orchestration]
     ZC[Zetaris Client]
@@ -212,8 +212,8 @@ flowchart LR
   ORCH --> TR
 ```
 
-- **Frontend** (`TBD` — no stack chosen/installed): presents question, live hypotheses, evidence cards, conclusion, revenue at risk, approval control, and trace view. Consumes the backend API only.
-- **Backend** (`TBD`): hosts the agent orchestration, the Zetaris client, the Nightshift/model client, and the trace store. The frontend never talks to Zetaris or the runtime directly.
+- **Frontend** (approved stack: **React + TypeScript + Vite + Tailwind CSS + shadcn/ui + Lucide React + TanStack Query**; Recharts only when a chart materially helps): one Investigation Workspace + Trace Panel. Vite proxies the backend during development; a production build may be served by FastAPI for a reproducible demo. **No Next.js, no plain static HTML as the main interface, no separate database.** Consumes the backend API only.
+- **Backend** (Python + FastAPI + Uvicorn; Pydantic models; httpx clients): hosts the agent orchestration, the Zetaris client, the Nightshift/model client, and the trace store. The frontend never talks to Zetaris or the runtime directly.
 - The **only required interface in V0 is the judge-facing `POST /run`** (see §10). Internal status/poll/approve/reject endpoints are **stretch** — in V0 the approval gate is handled inside the single `/run` flow or a local UI control, not extra endpoints. Exact routes/payloads remain `TBD` until implemented.
 
 ---
@@ -284,6 +284,7 @@ Conceptual response:
 - It **may** use synthetic/cached evidence and a **credential-free local provider adapter** (so it needs no private Nightshift/NVIDIA credentials). It **must NOT** return a stored final answer — **the supported cause must still be derived from the supplied evidence during the run.**
 - **Remove any notion of "simulated reasoning."** The only difference from live mode is the evidence source and the credential-free adapter, not skipping the logic.
 - **UI/output must visibly label sample/synthetic mode** so no one mistakes synthetic data for a real receivable.
+- **Sample mode is credential-free but is NOT sufficient as sponsor-tech proof.** Sponsor integration claims (Zetaris / Nightshift / Scout Intent / Nemotron) require a verified live receipt; a sample run must never be presented as such.
 
 ---
 
@@ -301,7 +302,7 @@ Conceptual response:
 ## 16. Configuration
 
 - Everything environment-driven and **configurable, never hardcoded**: runtime URL/token, model routing, Zetaris base URL, request-ID behavior, sample-vs-live mode, retry limits.
-- **Known env var names** (values not recorded): `METERLESS_BASE_URL`, `METERLESS_API_KEY`, `NEMOTRON_MODEL`. Zetaris base URL, mode flags, and retry limits will be added as `TBD` config keys.
+- **Canonical env var names** (values not recorded): `METERLESS_BASE_URL`, `METERLESS_RUNTIME_TOKEN`, `METERLESS_MODEL`, `ZETARIS_REST_URL`, `ZETARIS_ORG_ID`, `ZETARIS_API_KEY`, `SAMPLE_MODE`, `MAX_EVIDENCE_RETRIES`. Prohibited legacy aliases (`METERLESS_API_KEY`, `NEMOTRON_MODEL`, `ZETARIS_BASE_URL`) must be **ignored**, never silently migrated.
 - A single config module loads and validates these at startup; missing required values fail loudly (no silent defaults to real endpoints).
 
 ---
@@ -324,17 +325,17 @@ Conceptual response:
     ├── llm.py           # Nightshift/Nemotron client wrapper (empty stub)
     └── tools_zetaris.py # Zetaris REST/SQL evidence tools    (empty stub)
 ```
-Likely additions during build (`TBD`, only when a phase approves): `data/` (synthetic seed), `trace/`, `config`, and a `frontend/` for Friend 1's UI work.
+Approved structure added during build: `frontend/` (React + TypeScript + Vite app: Investigation Workspace + Trace Panel), `data/fixtures/` (reproducible synthetic CSV hero datasets read by the credential-free sample adapter), and `tests/` (pytest). Backend stays under `agent/` (FastAPI). No Next.js and no extra database.
 
 ---
 
 ## 18. Open `TBD` Items (consolidated)
 
 - Nightshift runtime URL + token (env-provided later).
-- Concrete Nemotron model ID / route (keep configurable; NVIDIA vs. Nightshift-compatible routing under investigation).
-- Which Meterless Engine is actually wired (Scout Intent likely, unverified).
+- Concrete model route via `METERLESS_MODEL` (keep configurable; Nemotron through Nightshift; prove by a Nightshift receipt).
+- Scout Intent wiring (required for the live routing stage; a deterministic `fallback` router is used until verified).
 - Exact Zetaris REST request/response field names and auth flow (validate against live instance).
-- Backend and frontend technology stacks (not chosen/installed yet).
+- Backend (Python/FastAPI) and frontend (React/TypeScript/Vite) stacks are chosen; package installation + clean-clone verification are pending in later phases.
 - Internal API routes and payloads (conceptual only).
 - Trace store persistence and max-retry constant value.
 - `POST /run` request/response field names (conceptual above; **planned, not implemented** — no code exists).

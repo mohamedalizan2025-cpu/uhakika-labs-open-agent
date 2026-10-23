@@ -227,13 +227,14 @@ Any new enum value must be added here first (contract is the source of truth).
   - The UI labels any synthetic-derived result as **Sample / Synthetic** (per `ARCHITECTURE.md` §14).
 - Each record carries implicit provenance via **source system + owner** (documented per table above) and the **evidence ID** it will be cited by.
 - **Never fabricate evidence at runtime** — the app may only read rows that exist in Zetaris. New evidence appears only by seeding datasets between runs, never by the agent inventing rows.
+- **Reproducible CSV fixtures** under `data/fixtures/` are the underlying V0 datasets. The credential-free **sample adapter** reads these fixtures; **live mode** exposes the same data through Zetaris. Each fixture file/table carries a `synthetic=true` marker.
 - PII policy: synthetic person/entity names only; no real Tanzanian companies, officials, or individuals. No secrets in `summary`/`external_block_reason` text fields.
 
 ---
 
 ## 8. Query Expectations (Zetaris / Lightning SQL)
 
-- All evidence is retrieved **through Zetaris** REST/SQL. Base URL `http://localhost:8888/api/v1.0`; SQL endpoint `/sql-editor/sqls/run` (exact payload fields `TBD` — validate against live Zetaris).
+- All evidence is retrieved **through Zetaris** REST/SQL, configured by the canonical `ZETARIS_REST_URL` / `ZETARIS_ORG_ID` / `ZETARIS_API_KEY` (expected local base value `http://localhost:8888/api/v1.0`); SQL endpoint `/sql-editor/sqls/run` (exact payload fields `TBD` — validate against the live Zetaris contract; do not invent).
 - **One SQL statement per call. Fresh request ID per query.**
 - Prefer explicit column lists; select the ID fields needed for citations plus evaluation fields.
 - Read-only for investigation. No mutations during a "why unpaid" query.

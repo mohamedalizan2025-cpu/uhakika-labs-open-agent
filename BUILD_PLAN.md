@@ -1,201 +1,152 @@
-# BUILD_PLAN.md — Uhakika Implementation Plan
+# BUILD_PLAN.md — Uhakika Implementation Plan (9-Phase Checkpoint Protocol)
 
-> **Status:** Planning only. No product code implemented yet. Plan covers the remaining Open Agent Hackathon 2026 build window through submission.
+> **Status:** Governing build plan. No investigation features are implemented yet.
+> This plan is aligned to the approved technical stack and the canonical
+> environment-variable contract. Each phase ends with tests → diff review →
+> secret scan → BUILD_LOG update → commit → push `main` → phase tag.
+
+---
+
+## 0. Completed groundwork
+
+- Git repo on branch `main`; baseline commit `chore: capture pre-build scaffold and git setup`; specification commit `docs: establish Uhakika product and agent specifications`.
+- `.env`, `.venv/`, caches ignored (`.gitignore` will gain frontend/cache entries during Phase 2).
+- Zetaris running locally, verified 9/9.
+- Phase 2 documentation/skeleton pass produced `agent/config.py`, adapter interfaces, and stdlib tests (reconciled in Phase 2 below).
 
 ---
 
 ## 1. Team & Roles (provisional)
 
-> **Provisional until confirmed.** Re-confirm owners before Phase 2 starts.
-
 | Person | Provisional role | Primary focus |
 |---|---|---|
-| **Ali** | Product owner | AI/data, final integration, sponsor technology, architecture understanding |
-| **Friend 1** | Frontend / UI / UX | Investigation UI, evidence cards, approval gate, trace view |
+| **Ali** | Product owner | AI/data, integration, sponsor technology, architecture |
+| **Friend 1** | Frontend / UI / UX | Investigation Workspace, evidence cards, approval gate, trace view |
 | **Friend 2** | Backend / integrations / testing | Agent orchestration, Zetaris client, Nightshift client, tests |
 
+The HackOS team remains three members; one member implements. Do not alter the roster or create a HackOS submission.
+
 ---
 
-## 2. Prioritization (from judging weights)
+## 2. Approved technical stack
+
+**Backend:** Python 3.11+, FastAPI, Uvicorn, Pydantic, httpx, python-dotenv, pytest.
+**Frontend:** React, TypeScript, Vite, Tailwind CSS, shadcn/ui, Lucide React, TanStack Query; Recharts only when a chart materially helps.
+**Architecture:** `frontend/` holds the React app; FastAPI owns the backend/API; Vite proxies the backend in dev; a production frontend build may be served by FastAPI. No Next.js. No plain static HTML as the main interface. No Supabase/Postgres/Mongo/extra DB for V0. Zetaris is the mandatory live data layer; reproducible synthetic CSV fixtures back the V0 datasets; sample mode uses a credential-free adapter over the same fixtures.
+
+If Python 3.14 proves incompatible with a dependency, **stop** — do not swap Python automatically. If Node is incompatible with Vite, **stop** — do not install/replace Node automatically.
+
+---
+
+## 3. Canonical environment variables (only these names)
+
+`METERLESS_BASE_URL`, `METERLESS_RUNTIME_TOKEN`, `METERLESS_MODEL`, `ZETARIS_REST_URL`, `ZETARIS_ORG_ID`, `ZETARIS_API_KEY`, `SAMPLE_MODE`, `MAX_EVIDENCE_RETRIES`.
+
+Prohibited legacy aliases (never supported/documented/migrated): `METERLESS_API_KEY`, `NEMOTRON_MODEL`, `ZETARIS_BASE_URL`. `.env` is never opened/read/printed; missing variables are reported by **name only**.
+
+Model routing: the live route is read from `METERLESS_MODEL` and served through Nightshift; Nemotron powers EvaluatorAgent; OpenRouter sits *behind* Nightshift only. Preferred test route (config only): `nvidia/nemotron-3.5-super-vl:free`. Never claim a provider/model without a Nightshift receipt.
+
+---
+
+## 4. Prioritization (judging weights)
 
 Impact 30 · Technical 20 · Innovation 15 · Demo 15 · Product & UX 10 · Sponsor Tech 10.
-Optimize in order: **real problem/impact → working reliable agent → evidence-backed reasoning → strong demo → UX → extras.**
-
-**Guiding principle: build an end-to-end thin slice early.** Get one invoice question flowing through hypotheses → evidence → conclusion → recommendation → approval → trace before broadening scope. A reliable thin slice beats a broken wide build.
-
-```
-Phase 0 → 1 → 2 → 3 → 4(thin slice)→ 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14
-                        └────────────── thin slice complete here ┘
-```
+Optimize in order: **real problem/impact → working reliable agent → evidence-backed reasoning → strong demo → UX → extras.** Build the end-to-end thin slice early. A reliable thin slice beats a broken wide build.
 
 ---
 
-## 3. Phases
+## 5. Phase checkpoint protocol (run at the end of every phase)
 
-### Phase 0 — Environment / Setup
-- **Owner:** Ali (with Friend 2 support)
-- **Scope:** Git repo (done), `.env` handling, `.venv`, Zetaris local verification, Nightshift install in progress, sponsor accounts.
-- **Dependencies:** none
-- **Exit criteria:** Zetaris running locally verified 9/9; `.env`/`.venv` ignored; branch `main`; baseline commit present. Nightshift install status recorded (may still be in progress).
-- **Test:** `git check-ignore .env .venv` passes; Zetaris 9/9 check re-run.
-- **Risks:** Nightshift/runtime not ready → mitigated by proceeding to docs and sample mode; never invent runtime values.
-- **Status:** Largely complete (see `BUILD_LOG.md`).
+1. Run all relevant backend and frontend tests.
+2. Run frontend type-check + production build when frontend files changed.
+3. Inspect the complete diff.
+4. Verify the phase acceptance criteria.
+5. Secret-scan tracked files **without printing matched secret content**.
+6. Update `BUILD_LOG.md` honestly.
+7. Stage only phase-related files.
+8. Run `git diff --cached --check`.
+9. Commit with one focused message.
+10. Push `main`.
+11. Create + push the phase tag if it does not exist (never move/force an existing tag).
+12. Continue automatically when green. **Never commit a failing phase.**
 
-### Phase 1 — Documentation / Specification  ← **current phase**
-- **Owner:** Ali
-- **Scope:** The six spec files (AGENTS/PRD/ARCHITECTURE/DATA_CONTRACT/BUILD_PLAN/BUILD_LOG). No code.
-- **Dependencies:** Phase 0
-- **Exit criteria:** six docs reviewed & approved; every `TBD` explicit; no invented endpoints/models/credentials.
-- **Test:** human review against AGENTS rules (walkthrough).
-- **Risks:** spec drift → keep decisions logged; revisit docs as `TBD`s resolve.
-
-### Phase 2 — Sponsor Smoke Tests
-- **Owner:** Friend 2 (Ali reviews sponsor compliance)
-- **Scope:** Standalone smoke checks: (a) Zetaris REST/SQL call returns rows with a **fresh request ID**, one statement per call; (b) minimal Nightshift round-trip **once runtime env vars are provided** — else clearly `TBD`/deferred, no fakes.
-- **Dependencies:** Phase 1; Nightshift env vars for (b)
-- **Exit criteria:** Zetaris query proven end-to-end; Nightshift either proven or explicitly deferred to sample mode with a logged reason.
-- **Test:** `smoke_test.py` runs the checks; prints pass/fail; **never prints credentials**.
-- **Risks:** runtime unavailable → do not claim live; gate later phases on sample mode.
-
-### Phase 3 — Data Layer (synthetic seed + Zetaris wiring)
-- **Owner:** Ali (data) + Friend 2 (Zetaris client)
-- **Scope:** Seed the **hero minimum subset** from `DATA_CONTRACT.md` §10 (contracts, invoices, deliveries, acceptance_records, communications, **compliance_items**, payment_status; **guarantees are STRETCH**). Implement EvidenceAgent's Zetaris query helpers.
-- **Dependencies:** Phase 2
-- **Exit criteria:** each dataset queryable via Zetaris returning the canonical IDs (INV-004, DEL-009, CERT-018, MSG-037, **CMP-005**, PAY-011, CTR-001 with `clause_ref`); synthetic markers present; validation rules (§9) pass.
-- **Test:** query each table; assert hero rows exist and FK integrity holds; assert `compliance_items` contains a `required=true, submitted=false` row (H4 groundable without relying on communications).
-- **Risks:** schema mismatch with Lightning SQL → validate dialect early; accidental fabrication temptation → enforce read-only, evidence-by-ID only.
-
-### Phase 4 — Core Investigation Loop (THIN SLICE)
-- **Owner:** Ali (agents) + Friend 2 (orchestration)
-- **Scope:** Three **core** agents — `InvestigatorAgent` (generates H1–H5, holds shared case state, orchestrates), `EvidenceAgent` (Zetaris retrieval), `EvaluatorAgent` (supported/rejected). `ActionAgent` is **STRETCH** — the recommendation + approval gate live in the InvestigatorAgent for V0. Wrap the loop behind a single judge-facing **`POST /run`** (in-memory/CLI first; `main.py`), **single invoice, sample mode allowed**. Conclusions are **derived from evidence at runtime — never hardcoded**.
-- **Dependencies:** Phase 3
-- **Exit criteria:** end-to-end via `POST /run`: "Why is INV-004 unpaid?" → revenue at risk = TZS 126,000,000, supported cause = missing compliance evidence (**H4, grounded by `compliance_items` CMP-005 `required=true, submitted=false`, citing `CLAUSE-7.2`**), H1–H3 rejected with evidence-based reasons.
-- **Test:** golden test compares **runtime-derived** output to the canonical shape (fixture, not shipped answer); **anti-fabrication test** (remove CMP-005 or flip `submitted=true` → conclusion must change; removing MSG-037 alone must NOT by itself prove/disprove H4).
-- **Risks:** jumping to answer / hardcoding → enforce hypothesis-then-evidence order and runtime derivation; keep Nightshift reasoning `TBD` (credential-free adapter) until runtime verified.
-
-### Phase 5 — Evaluator / Critic
-- **Owner:** Ali
-- **Scope:** Flesh out EvaluatorAgent: score each hypothesis, explicit rejection reasons, **insufficiency detection + bounded retry loop** requesting more evidence.
-- **Dependencies:** Phase 4
-- **Exit criteria:** system requests more evidence when insufficient instead of guessing; retry_count recorded; max-retry respected.
-- **Test:** scenario with partial evidence triggers exactly one bounded re-retrieval then a valid terminal state.
-- **Risks:** infinite loops → hard max-retry constant (config).
-
-### Phase 6 — Meterless Engine Integration
-- **Owner:** Ali (sponsor tech)
-- **Scope:** Wire **Scout Intent** (a **Meterless Engine**, powering the routing **stage** — not a core agent) for the hero intent, if/when integrated; otherwise use a clearly-labeled deterministic fallback router. **World Model** deferred (out of V0). **Do not claim an Engine is live until verified.**
-- **Dependencies:** Phase 2 (runtime), Phase 4
-- **Exit criteria:** at least one real feature visibly powered by a Meterless Engine, OR documented fallback if Engine unavailable (honestly labeled).
-- **Test:** Scout Intent correctly classifies the hero intent vs. a non-matching query.
-- **Risks:** Engine availability → keep configurable; if unavailable, mark `TBD` and do not fake it.
-
-### Phase 7 — UI
-- **Owner:** Friend 1
-- **Scope:** **ONE main Investigation View + a Trace Panel** (not multiple pages). The view shows: question/input, invoice/receivable context, revenue-at-risk, hypotheses + statuses, supported cause + rejected causes, cited evidence (IDs), recommended action, and the human-approval control. It consumes the single `POST /run` interface. Extra pages (separate Ask/Evidence/Conclusion/Action screens, dashboards) are **STRETCH**.
-- **Dependencies:** Phase 4 (`POST /run` shapes)
-- **Exit criteria:** demo flow clickable end-to-end in sample mode against `POST /run`; synthetic/sample mode visibly labeled.
-- **Test:** manual demo walkthrough + basic smoke of the view's data binding.
-- **Risks:** frontend talking directly to Zetaris/runtime → forbidden; enforce boundary.
-
-### Phase 8 — Trace / Logging
-- **Owner:** Friend 2
-- **Scope:** Operational trace store + per-step entries (agent, action, query/tool, source summary, decision, confidence, retry_count, model_route, evidence_ids). **No chain-of-thought.** Expose trace to UI (Phase 7).
-- **Dependencies:** Phase 4–5
-- **Exit criteria:** every hero run produces a readable trace citing evidence IDs; no secrets in trace.
-- **Test:** assert trace has required fields; assert no credential strings appear.
-- **Risks:** fabricated/`pretty` logs → logs must reflect real executed steps only.
-
-### Phase 9 — Sample Mode (hardening for demo)
-- **Owner:** Ali + Friend 2
-- **Scope:** Deterministic, clearly-labeled synthetic run that **executes the same real pipeline** (parsing, routing contract, investigation, evidence-retrieval interface, hypothesis evaluation, retry, result + trace construction) over synthetic/cached evidence via a **credential-free local adapter**, and **derives the answer at runtime** — it **never returns a stored/pre-written result**. Graceful-degrade path when runtime/Zetaris unavailable.
-- **Dependencies:** Phase 3–8
-- **Exit criteria:** sample mode reproduces the hero output shape reliably and is labeled; supported cause is computed from evidence each run; live mode used when available.
-- **Test:** repeated sample runs are deterministic **yet** flipping the `compliance_items` row changes the outcome (proves derivation, not a canned answer); live→sample fallback triggers on simulated runtime outage.
-- **Risks:** confusing sample with live → persistent UI label; never claim live reasoning that didn't run.
-
-### Phase 10 — Testing
-- **Owner:** Friend 2 (with Ali on reasoning tests)
-- **Scope:** Smoke suite, evidence-grounding/anti-fabrication tests, hypothesis-evaluation tests, approval-gate tests, boundary checks (Zetaris-only evidence, Nightshift-only runtime), **and a `POST /run` contract test** (request/response shape) plus a **no-hardcoded-output test** (result must change with evidence).
-- **Dependencies:** Phase 4–9
-- **Exit criteria:** green suite covering hero path + key failure states + the `POST /run` interface; regressions tracked.
-- **Test:** the suite itself; plus a manual judge-style demo run.
-- **Risks:** time crunch → prioritize hero-path tests first.
-
-### Phase 11 — README
-- **Owner:** Ali
-- **Scope:** Quickstart (env setup from `.env.example`, run smoke test, run sample mode, call `POST /run`), architecture summary, sponsor-tech notes, demo script pointer. Also create the submission artifacts: **`README.md`, `.env.example` (placeholders only — no secrets), `input_examples/`, `output_examples/`, and `logs/` (a sample operational trace)**.
-- **Dependencies:** Phase 1–10
-- **Exit criteria:** a new teammate can clone, install from an approved requirements list (only after a phase permits installs), copy `.env.example`→`.env`, and run the demo; input/output examples and a sample log are present.
-- **Test:** clean-clone dry run starts sample mode.
-- **Risks:** missing steps → validate via Phase 13.
-
-### Phase 12 — Demo / Deck
-- **Owner:** Ali (narrative) + Friend 1 (UI for demo)
-- **Scope:** Live demo script around the hero question; slide deck covering problem, impact, evidence-backed reasoning, architecture, sponsor tech, trace proof.
-- **Dependencies:** Phase 7–9
-- **Exit criteria:** rehearsed ≤ time limit; every claim supported by what actually runs.
-- **Test:** dry-run demo on a fresh machine in sample mode.
-- **Risks:** overclaiming → strictly avoid "we make government pay"; show rejected hypotheses + trace.
-
-### Phase 13 — Clean-Clone Validation
-- **Owner:** Friend 2
-- **Scope:** Clone repo to a clean machine, install permitted deps, copy `.env.example`→`.env` and fill values locally (no secrets committed), run smoke test + sample demo via `POST /run`.
-- **Dependencies:** Phase 11
-- **Exit criteria:** works from scratch; `.env`/`.venv` correctly ignored; no committed secrets.
-- **Test:** automated smoke passes on clean clone; manual demo check.
-- **Risks:** local-only assumptions → catch missing files/config here, not at submission.
-
-### Phase 14 — Submission
-- **Owner:** Ali
-- **Scope:** Final repo tidy, tags, submission artifacts (README, deck, demo link/video), sponsor-requirement checklist.
-- **Dependencies:** Phase 13
-- **Exit criteria:** all submission requirements met and reviewed.
-- **Test:** pre-submission checklist signed off by all three.
-- **Risks:** last-minute breakage → freeze code before submission; only doc-level edits in freeze.
+**GitHub:** reuse `origin` if configured; else create/reuse the public repo `uhakika-labs-open-agent` (gh is authenticated). Preserve local history; never create a duplicate; never force-push or rewrite history.
 
 ---
 
-## 4. Thin-Slice Emphasis
+## 6. Phases
 
-The first working end-to-end path (Phase 4) must exist before UI polish (Phase 7) or breadth. By the end of Phase 5 we should demo, through **`POST /run`**: question → routing stage → hypotheses → Zetaris evidence → evaluation → supported cause + rejected H1–H3 → revenue at risk → recommendation → approval gate → trace. The three core agents (`InvestigatorAgent`, `EvidenceAgent`, `EvaluatorAgent`) do this work; conclusions are **derived at runtime**, not hardcoded. Everything after refines and surfaces that single slice.
+### Phase 1 — Specification (Document Correction Gate)
+- Update the six governing docs to the canonical env names + approved React/Vite stack; Scout Intent = required live-routing Engine (`fallback` labeled); Nemotron-via-Nightshift powers EvaluatorAgent; sample mode credential-free but insufficient as sponsor proof; keep three core agents, one `POST /run`, one Investigation Workspace + Trace Panel; World Model / ActionAgent deferred.
+- Acceptance: docs internally consistent; no legacy aliases in normative docs; no feature falsely claimed complete; no secrets.
+- **Commit:** `docs: align specifications to canonical contracts and approved stack`
+- **Tag:** `phase-01-specification`
+
+### Phase 2 — Foundation
+- Reconcile existing Phase 2 work. Python package structure; central validated config (canonical names, legacy ignored, secrets masked); FastAPI app factory + `/health`; Zetaris + Nightshift adapter boundaries; domain models; sanitized operational logging; `.env.example` (canonical names, placeholders only); pytest tests; React/TypeScript/Vite scaffold with Tailwind + approved UI deps; basic app shell; TanStack Query provider; API client boundary; error boundary; loading/empty states; backend + frontend dev instructions.
+- Tests prove: legacy aliases ignored; canonical names load; secrets never appear in repr/status/errors; sample mode starts without credentials; live mode reports missing names only; `/health` works; `POST /run` is **not** implemented during foundation; frontend type-check + production build pass.
+- **Commit:** `fix: align contracts and complete application foundation`
+- **Tag:** `phase-02-foundation`
+
+### Phase 3 — Zetaris Data
+- Inspect safe files (`hello.py`, `smoke_test.py`) — never `.env`. Synthetic CSV fixtures for all hero datasets + `dataset_meta`; stable evidence IDs; normalized evidence envelopes; completeness validation; credential-free sample evidence adapter; live Zetaris REST adapter; one statement per request; fresh request ID per query; sanitized errors; empty-result handling; typed domain conversion; tests for malformed/incomplete evidence. Validate the Lightning-SQL contract from verified code/live service — do not invent fields.
+- Run `SELECT 1 AS one` only if credentials already configured (never expose auth). Then seed/expose hero datasets through Zetaris and prove they are queryable.
+- **Commit:** `feat: establish Zetaris evidence layer`
+- **Tag:** `phase-03-zetaris-data`
+
+### Phase 4 — Agent Thin Slice
+- Real sample-mode pipeline: `POST /run` → routing interface → InvestigatorAgent → EvidenceAgent → evidence adapter → EvaluatorAgent → supported/rejected hypotheses → recommendation → human-approval state → operational trace. Conclusions derived at runtime; no stored hero answer; INV-004 → TZS 126,000,000; H4 depends on CMP-005 + CLAUSE-7.2; MSG-037 is corroboration only; H1–H3 rejected with evidence reasons; removing CMP-005 downgrades H4; every claim cites evidence IDs; missing evidence → insufficient evidence; traces are actions/decisions (never chain-of-thought); bounded retries; Pydantic request/response contracts; contract + mutation + anti-fabrication tests.
+- **Commit:** `feat: implement evidence-grounded agent thin slice`
+- **Tag:** `phase-04-agent-thin-slice`
+
+### Phase 5 — Evaluator Loop
+- Bounded retrieval retries; evaluator critique; insufficient-evidence behavior; malformed-model-output handling; approval state; deterministic sample routing labeled `fallback`; multiple inputs (not only the hero query); confidence validation; evidence-removal / retry-limit / failure-state tests. Never label the fallback as Scout Intent.
+- **Commit:** `feat: harden evaluator and retry loop`
+- **Tag:** `phase-05-evaluator-loop`
+
+### Phase 6 — Meterless, Nightshift, Nemotron (live path)
+- Scout Intent powers live routing; every live model request passes through Nightshift; Nemotron powers EvaluatorAgent critique; model output validated before affecting conclusions; evidence rules override unsupported model claims; routing stays configuration-driven; sanitized receipt metadata captured.
+- Required proof: (1) Scout Intent distinguishes the hero query from a non-matching query; (2) a real request passes through Nightshift; (3) a Nightshift receipt identifies the actual provider/model; (4) Nemotron contributes to a working feature; (5) no credentials in logs/traces.
+- **If the runtime token / model / provider needs a human, STOP with `ENTER SECRET HERE` and name the exact variable.** Do not claim this phase from mocks or sample mode.
+- **Commit:** `feat: integrate Scout Intent and Nemotron through Nightshift`
+- **Tag:** `phase-06-meterless-nemotron`
+
+### Phase 7 — Professional Investigation Workspace (React)
+- Enterprise-grade single Investigation Workspace + Trace Panel. Visual direction: serious institutional-finance product; deep navy/slate nav; warm neutral workspace; emerald=supported/safe; amber=warning/pending; red sparingly for material risk; strong type/spacing; subtle borders/shadows; no gradient/glass overuse; no fake metrics; no lorem ipsum; restrained transitions; WCAG-conscious contrast + keyboard. Includes top bar/identity, question composer, invoice/contract context, prominent TZS revenue-at-risk, agent execution progress, hypothesis cards + statuses, supported/rejected causes, evidence cards (IDs + source summaries), recommendation panel, human-approval control, live/sample badge, expandable Trace Panel, loading skeletons, empty/insufficient-evidence/runtime-unavailable/retry/success states. shadcn/ui used thoughtfully; Lucide icons (no emoji); Recharts only for genuinely useful risk/timeline. Connect to the real FastAPI contract via TanStack Query; **do not hardcode the hero result in components.**
+- Test: TypeScript, production build, API state handling, sample workflow, error states, responsive layout, keyboard-accessible critical controls.
+- **Commit:** `feat: deliver professional investigation workspace`
+- **Tag:** `phase-07-investigation-ui`
+
+### Phase 8 — Hardening
+- Full backend tests; frontend tests/type-check/build; clean-clone validation where safe; GitHub Actions for credential-free backend tests + frontend build; verify sample mode needs no credentials; verify no hardcoded conclusions; verify no live evidence bypasses Zetaris; verify all live AI goes through Nightshift; verify no secrets/chain-of-thought in traces; ≥3 sample inputs/outputs; complete setup/usage/architecture docs; test Windows clean-start.
+- **Commit:** `test: harden reproducibility and sponsor boundaries`
+- **Tag:** `phase-08-hardening`
+
+### Phase 9 — Submission Preparation (prepare, do not submit)
+- Final public README; architecture diagram; sponsor-tech explanation; demo script; slide-deck outline; `metadata.json`; three sample inputs/outputs; sanitized trace; screenshots plan; clean-clone instructions; pre-existing-component declaration; final PASS/FAIL checklist; exact remaining manual submission steps.
+- Do **not**: create the HackOS submission, alter the roster, upload the demo video, publish the deck, expose credentials, or claim an unproven integration.
+- **Commit:** `docs: prepare reproducible hackathon submission`
+- **Tag:** `phase-09-submission-ready`
 
 ---
 
-## 5. Cross-Cutting Rules for All Phases
+## 7. Submission artifacts (produced across phases)
 
-- No installs / no frontend / no databases / no API implementation during Phase 0–1 (setup+docs). Code begins at Phase 2 tests onward, per `AGENTS.md` §8.
-- Zetaris for all business evidence; Nightshift for all product AI runtime; model routing configurable; never invent IDs/endpoints/credentials.
-- Small, reversible commits; human approval before commit; explain-before-change.
-- Update `BUILD_LOG.md` every phase; keep `TBD`s honest and current.
-- Re-validate this plan after each phase; adjust owners/sequence only with a logged decision.
-
----
-
-## 6. Provisional Milestones (relative — no dates invented)
-
-1. **Spec approved** (end Phase 1) — now.
-2. **Data + smoke verified** (end Phase 3).
-3. **Thin slice works** (end Phase 5) — highest-value checkpoint.
-4. **Sponsor tech wired** (Phase 6) + **UI clickable** (Phase 7).
-5. **Demo-ready** (Phases 9–12).
-6. **Validated & submitted** (Phases 13–14).
-
-Exact calendar scheduling is `TBD` (depends on build-window time remaining and Nightshift readiness).
-
----
-
-## 7. Submission Artifacts (required, produced in Phases 11 & 13)
-
-The repository must eventually contain:
-- **`README.md`** — quickstart, architecture summary, sponsor-tech notes, how to run sample mode and call `POST /run`, demo pointer.
-- **`.env.example`** — **placeholders only, never real secrets**; lists required variable **names** (e.g., `METERLESS_BASE_URL`, `METERLESS_API_KEY`, `NEMOTRON_MODEL`, Zetaris base URL, mode flag). No NVIDIA/Nightshift provider credential values are ever committed.
-- **`input_examples/`** — sample `POST /run` request payloads (including the hero question).
-- **`output_examples/`** — sample `POST /run` responses (labeled synthetic/sample where applicable).
-- **`logs/`** — a sample **operational trace** (no chain-of-thought, no secrets).
-- **Clean-clone validation** — the whole thing runs from a fresh clone (Phase 13).
+`README.md`, `.env.example` (canonical names, placeholders only — never real secrets), `input_examples/`, `output_examples/`, `logs/` (sample operational trace), and a clean-clone validation. Installs happen only inside `.venv` and `frontend/`; `requirements.txt` + `package-lock.json` record approved direct dependencies.
 
 ---
 
 ## 8. Stretch / Deferred (do NOT build unless the thin slice is solid)
 
-To keep V0 buildable by three students, the following are explicitly **STRETCH** and out of the critical path: `ActionAgent` as a separate agent, the guarantees-based workflow, portfolio dashboards, multiple UI pages, real-time streaming, complex authentication, multiple REST endpoints (only `POST /run` is required), and production-grade infrastructure. Defer anything not needed for: question → hypothesis → evidence → evaluation → retry/branch → conclusion → recommendation → trace.
+`ActionAgent` as a separate agent, World Model, guarantees-based workflow, portfolio dashboards, multiple UI pages, real-time streaming, complex authentication, multiple REST endpoints (only `POST /run` is required), production-grade infrastructure.
+
+---
+
+## 9. Cross-cutting rules
+
+- Zetaris for all business evidence; Nightshift for all product AI; model route via `METERLESS_MODEL`; never invent IDs/endpoints/credentials.
+- Never open/read/print `.env`. Secrets referenced by name only; missing-variable errors show names only.
+- Sample mode is credential-free but never presented as sponsor proof.
+- Small, reversible commits; human approval before commit only where the governing workflow still requires it; explain-before-change for non-routine edits.
+- Update `BUILD_LOG.md` every phase; keep `TBD`s honest.
+- **Stop conditions:** a secret/login must be entered; GitHub auth needs a human; Node/Python must be installed/replaced; a destructive op appears necessary; documents contain an unresolved contradiction; tests fail with no clear safe fix; the live Zetaris contract cannot be verified; Nightshift needs human UI interaction; a major out-of-scope product decision is required; a HackOS roster/submission action is reached; Phase 9 is complete; or continuing risks credentials or existing work.

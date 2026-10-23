@@ -117,13 +117,13 @@ Submit missing evidence and issue formal payment-processing request.
 
 - One **hero question** investigated end-to-end (thin slice): invoice → hypotheses → evidence via Zetaris → evaluation → supported cause → revenue-at-risk → recommended action → human approval gate → trace log.
 - **Three core named agents doing distinct work** — `InvestigatorAgent`, `EvidenceAgent`, `EvaluatorAgent`. (A separate `ActionAgent` is **STRETCH**; in V0 the recommendation + approval gate is handled by the InvestigatorAgent/orchestrator.) See `ARCHITECTURE.md`.
-- A routing **Intent Router** stage — optionally powered by the Meterless Engine **Scout Intent** once integrated; otherwise `TBD`. The router is a stage, not one of our core agents.
-- Evidence retrieval via **Zetaris REST/SQL** over a **synthetic, clearly-marked** dataset covering the minimum hero subset (see `DATA_CONTRACT.md` §10: contracts, invoices, deliveries, acceptance_records, communications, **compliance_items**, payment_status).
+- A routing **Intent Router** stage — for the **live** path this must be powered by the required Meterless Engine **Scout Intent**; until Scout Intent is wired and verified, a deterministic fallback router is used and clearly labeled `fallback` (**never** presented as Scout Intent). The router is a stage, not one of our core agents.
+- Evidence retrieval via **Zetaris REST/SQL** (configured by `ZETARIS_REST_URL` / `ZETARIS_ORG_ID` / `ZETARIS_API_KEY`) over a **synthetic, clearly-marked** dataset backed by **reproducible CSV fixtures**, covering the minimum hero subset (see `DATA_CONTRACT.md` §10: contracts, invoices, deliveries, acceptance_records, communications, **compliance_items**, payment_status).
 - **Hypothesis generation + explicit rejection** of unsupported hypotheses (the "explain why" differentiator). H4 must be grounded by `compliance_items`, not inferred from a communication alone.
 - **A single programmatic interface for judges: `POST /run`** (see `ARCHITECTURE.md` §10). Extra status/poll/approve/reject endpoints are stretch.
-- **One main Investigation View + a Trace Panel** (see §11) — not multiple screens.
-- **Sample mode** that executes the **real pipeline** (parsing, routing contract, investigation, evidence-retrieval interface, hypothesis evaluation, retry, result and trace construction) over synthetic/cached evidence via a **credential-free local adapter**, and **derives the supported cause at runtime** — it must **never return a stored/pre-written answer** — so the demo is deterministic even if live runtime endpoints are unavailable.
-- Meterless Engine (**Scout Intent** as the likely first candidate) powering the routing stage — *only once Nightshift/Engine integration is verified; otherwise `TBD`/sample mode*.
+- **One Investigation Workspace + a Trace Panel** (see §11) — not multiple screens.
+- **Sample mode** that executes the **real pipeline** (parsing, routing contract, investigation, evidence-retrieval interface, hypothesis evaluation, retry, result and trace construction) over synthetic/cached evidence via a **credential-free local adapter**, and **derives the supported cause at runtime** — it must **never return a stored/pre-written answer** — so the demo is deterministic even if live runtime endpoints are unavailable. Sample mode is **credential-free but, on its own, is NOT sufficient proof** of a Zetaris / Nightshift / Scout Intent / Nemotron integration.
+- Meterless Engine **Scout Intent** powering the **live** routing stage (the required Engine) — *only once Nightshift/Engine integration is verified; until then a deterministic `fallback` router is used and the run is clearly labeled sample/fallback, never Scout Intent*.
 
 ## 8b. Explicitly OUT of V0 (Non-Goals)
 
@@ -171,9 +171,9 @@ V0 is **NOT**:
 
 ## 11. Key Screens (V0)
 
-**V0 is a single screen plus a trace panel — not six screens.**
+**V0 is a single Investigation Workspace plus a trace panel — not six screens.**
 
-1. **Investigation View (one main view)** containing:
+1. **Investigation Workspace (one main view)** containing:
    - question / input (or pick the hero invoice)
    - invoice / receivable context
    - revenue-at-risk amount
