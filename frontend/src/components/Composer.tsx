@@ -2,10 +2,15 @@ import { useState, type FormEvent } from "react";
 import { Loader2, Search } from "lucide-react";
 import type { RunRequest } from "@/types";
 
-// The question composer. Sample invoice IDs below are queryable fixture keys
-// (not answers) — the investigation result is produced by the backend at runtime.
+// One-click sample scenarios: chip click fills the question + invoice AND
+// immediately fires the run. This is a convenience for the demo; the pipeline
+// still derives conclusions at runtime from the fixtures.
 
-const SAMPLE_INVOICES = ["INV-004", "INV-005", "INV-006"];
+const SAMPLE_SCENARIOS: { id: string; question: string }[] = [
+  { id: "INV-004", question: "Why hasn't our TZS 126,000,000 invoice been paid?" },
+  { id: "INV-005", question: "Why is the health-depot delivery invoice INV-005 unpaid?" },
+  { id: "INV-006", question: "Everything is delivered and accepted for INV-006 — why is payment stuck?" },
+];
 
 export function Composer({
   loading,
@@ -70,14 +75,19 @@ export function Composer({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <span className="text-xs text-slate-500">Sample inputs:</span>
-        {SAMPLE_INVOICES.map((id) => (
+        <span className="text-xs text-slate-500">Sample scenarios:</span>
+        {SAMPLE_SCENARIOS.map(({ id, question: q }) => (
           <button
             key={id}
             type="button"
-            onClick={() => setInvoiceId(id)}
+            disabled={loading || disabled}
+            onClick={() => {
+              setQuestion(q);
+              setInvoiceId(id);
+              onSubmit({ question: q, invoice_id: id, sample_mode: true });
+            }}
             className={
-              "rounded-md px-2 py-1 font-mono text-xs ring-1 ring-inset transition " +
+              "rounded-md px-2 py-1 font-mono text-xs ring-1 ring-inset transition disabled:cursor-not-allowed disabled:opacity-40 " +
               (invoiceId === id
                 ? "bg-emerald-500/15 text-emerald-300 ring-emerald-500/40"
                 : "bg-slate-800/50 text-slate-400 ring-slate-700 hover:text-slate-200")
