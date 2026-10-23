@@ -265,9 +265,58 @@ Next: Phase 3 — credential-free CSV-fixture sample adapter + live Zetaris adap
         populates the canonical Zetaris variables (the agent never edits .env).
 ```
 
+```
+Date/time: Official build window — Session 8 (Phase 3 — Zetaris evidence layer)
+Person: Ali (assistant-driven via Qwen 3.8 Flash build tooling only)
+Goal: Phase 3 — synthetic CSV fixtures for every hero dataset (+ provenance
+        markers), a credential-free sample evidence adapter, a live Zetaris REST
+        adapter boundary, one-statement / fresh-request-ID rules, sanitized errors,
+        empty-result handling, and fixture-integrity tests. Validate the Lightning-
+        SQL contract from verified code / a live service — never invent fields.
+Change: Added data/fixtures/*.csv (contracts, invoices, deliveries,
+        acceptance_records, communications, compliance_items, payment_status,
+        guarantees + dataset_meta synthetic markers) matching DATA_CONTRACT §3/§10
+        hero subset. Added agent/zetaris_sample.py SampleZetarisAdapter: resolves a
+        small deterministic SQL subset (SELECT 1 smoke; SELECT <cols|*> FROM <table>
+        [WHERE col = value [AND ...]]) against the fixtures through the SAME
+        ZetarisAdapter.run_query(sql, request_id) contract; rejects semicolon
+        batching; echoes the caller's fresh request id; treats "no rows" as a valid
+        empty result. Added ZetarisQueryError to agent/tools_zetaris.py. Added
+        agent/zetaris_live.py LiveZetarisAdapter boundary: a credential-safe
+        construction gate (missing canonical Zetaris vars raise with NAMES only),
+        the one-statement rule, and documented endpoint wiring — its run_query
+        raises ZetarisContractNotValidatedError rather than fabricating the still-
+        TBD request/response payload fields. Added agent/data_source.py
+        build_zetaris_adapter(settings) factory (sample vs live). Added tests.
+Files touched: data/fixtures/*.csv (9), agent/tools_zetaris.py,
+        agent/zetaris_sample.py, agent/zetaris_live.py, agent/data_source.py,
+        tests/{test_zetaris_sample,test_zetaris_live,test_data_source,test_fixtures}.py,
+        BUILD_LOG.md.
+Models/tools used: Qoder IDE + Qwen 3.8 Flash (build tooling only — NOT product
+        runtime). No OpenRouter extension installed.
+Tests: `.venv\Scripts\python.exe -m pytest -q` -> 42 passed (was 19; +23 Phase 3).
+        Includes a credential-free `SELECT 1` smoke and hero evidence queries
+        (INV-004 / CMP-005 / CERT-018) plus referential/validation integrity. No
+        network, no credentials, no .env access.
+Result: Sample-mode evidence layer is green and exercises the exact adapter
+        contract the future EvidenceAgent will depend on. Still NO agent pipeline
+        and NO POST /run. Live Zetaris querying remains gated (contract unvalidated
+        + canonical Zetaris vars unpopulated).
+Problems: No verified Zetaris client exists (smoke_test.py is empty) and the live
+        service cannot be reached because the canonical Zetaris variables are not
+        populated and .env is never read. Per BUILD_PLAN Phase 3 "do not invent
+        fields", the live adapter therefore defers the exact payload/response mapping
+        behind a clear, tested gate instead of fabricating it.
+Decision: Ship the sample adapter as the working V0 evidence path now; keep the live
+        boundary honest and config-gated; defer live payload validation to an owner-
+        supplied canonical Zetaris config against a reachable service.
+Next: Phase 4 — evidence-grounded agent thin slice (Investigator/Evidence/Evaluator)
+        over the sample adapter behind a single judge-facing POST /run.
+```
+
 ---
 
-## Known Open Items (as of the Phase 2 foundation checkpoint)
+## Known Open Items (as of the Phase 3 Zetaris evidence-layer checkpoint)
 
 - Meterless Nightshift runtime is still downloading/installing — Runtime URL and token `TBD` (env-provided later).
 - Live model route via `METERLESS_MODEL` (Nemotron reached through Nightshift) `TBD` — never claimed without a Nightshift receipt; preferred test route `nvidia/nemotron-3.5-super-vl:free` is configuration only.
@@ -275,7 +324,8 @@ Next: Phase 3 — credential-free CSV-fixture sample adapter + live Zetaris adap
 - Backend (Python/FastAPI) + frontend (React/TypeScript/Vite + Tailwind + TanStack Query + Lucide) are **installed and build cleanly**. shadcn/ui component init is deferred to Phase 7 (prerequisites configured). Internal API routes beyond `/health` still `TBD`.
 - Judge-facing `POST /run` endpoint `TBD` — documented conceptually, **planned, no code exists**.
 - **Phase 2 foundation exists but runs no features:** canonical config module, Pydantic domain/API contracts, sanitized logging, Zetaris/Nightshift adapter *interfaces*, pytest suite (19 green incl. `/health`), `.env.example`, and the frontend scaffold are in place; the investigation logic and `POST /run` are still not implemented.
+- **Phase 3 evidence layer (sample) is in place:** synthetic CSV hero fixtures + provenance markers, a credential-free `SampleZetarisAdapter` over the same `run_query(sql, request_id)` contract, a factory, and integrity tests (42 green). It is a data boundary, **not** an investigation feature — no agent pipeline / `POST /run` yet.
 - **`fastapi` / `uvicorn` / `httpx` / `pytest` / `pydantic` are installed in `.venv`** (pinned in `requirements.txt`); `agent/main.py` imports FastAPI and `GET /health` is exercised by a real (non-skipped) test.
-- Canonical Zetaris variables are defined (`ZETARIS_REST_URL`, `ZETARIS_ORG_ID`, `ZETARIS_API_KEY`); the owner must populate them in `.env` for live mode (the agent never opens/edits `.env`).
+- Canonical Zetaris variables are defined (`ZETARIS_REST_URL`, `ZETARIS_ORG_ID`, `ZETARIS_API_KEY`); the owner must populate them in `.env` for live mode (the agent never opens/edits `.env`). The `LiveZetarisAdapter` is a config-gated boundary that additionally defers execution until the Lightning-SQL request/response payload fields (still `TBD`) are validated against a reachable Zetaris service — no fields are invented.
 - **`.env` currently exposes only the legacy aliases; the canonical variables are not yet present, so live Zetaris/Nightshift modes cannot run until the owner supplies them.** Sample mode works credential-free.
-- No Uhakika product functionality implemented yet.
+- No Uhakika **investigation/agent** functionality implemented yet (the Phase 3 layer is a credential-free evidence adapter over fixtures, not a product feature).

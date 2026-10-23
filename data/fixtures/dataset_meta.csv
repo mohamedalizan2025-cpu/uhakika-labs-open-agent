@@ -1,0 +1,9 @@
+table,synthetic,generated_on,source_system,owner
+contracts,true,2026-10-23,contract register,supplier legal/contracts
+invoices,true,2026-10-23,billing ledger,supplier finance
+deliveries,true,2026-10-23,logistics tracker,supplier operations
+acceptance_records,true,2026-10-23,buyer acceptance portal,buyer site engineer
+communications,true,2026-10-23,correspondence archive,supplier account manager
+compliance_items,true,2026-10-23,buyer portal compliance checklist,supplier compliance
+payment_status,true,2026-10-23,buyer payment portal,buyer finance desk
+guarantees,true,2026-10-23,bank guarantee register,supplier treasury

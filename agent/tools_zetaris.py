@@ -16,6 +16,13 @@ from dataclasses import dataclass
 from typing import Any
 
 
+class ZetarisQueryError(Exception):
+    """Raised for a malformed or unsupported query / adapter misconfiguration.
+
+    Messages are operational only and never contain a credential value.
+    """
+
+
 @dataclass(frozen=True)
 class ZetarisQueryResult:
     """A grounded, credential-free result set for a single Zetaris query."""

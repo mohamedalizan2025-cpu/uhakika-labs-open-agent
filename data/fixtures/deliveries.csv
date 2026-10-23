@@ -1,0 +1,3 @@
+delivery_id,contract_id,invoice_id,milestone,quantity,delivered_date,status
+DEL-009,CTR-001,INV-004,Milestone 2 delivery,120,2025-08-28,complete
+DEL-007,CTR-001,INV-003,Milestone 1 delivery,80,2025-05-25,complete

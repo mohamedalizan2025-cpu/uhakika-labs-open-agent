@@ -1,0 +1,2 @@
+guarantee_id,contract_id,type,issued_by,amount_tzs,currency,issue_date,expiry_date,status
+GAR-002,CTR-001,performance,Continental Bank Ltd,26000000,TZS,2025-03-05,2026-03-05,active

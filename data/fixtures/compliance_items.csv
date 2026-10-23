@@ -1,0 +1,4 @@
+item_id,contract_id,invoice_id,document_type,required,submitted,submitted_date,status,clause_ref,source_ref
+CMP-005,CTR-001,INV-004,tax_clearance,true,false,,outstanding,CLAUSE-7.2,Buyer portal compliance checklist
+CMP-006,CTR-001,INV-004,vat_registration,true,true,2025-09-01,verified,CLAUSE-7.2,Buyer portal compliance checklist
+CMP-002,CTR-001,INV-003,business_license,true,true,2025-05-20,verified,CLAUSE-7.2,Register extract

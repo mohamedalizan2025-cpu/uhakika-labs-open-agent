@@ -1,0 +1,2 @@
+contract_id,title,buyer_type,supplier_name,value_tzs,currency,sign_date,start_date,end_date,payment_terms,clause_ref,requires_guarantee,requires_compliance_docs,status
+CTR-001,Utility Grid Expansion Supply,utility,Northbridge Equipment Ltd,520000000,TZS,2025-02-10,2025-03-01,2026-03-01,net 30 after acceptance,CLAUSE-7.2,false,true,active
