@@ -1,58 +1,98 @@
-import { useQuery } from "@tanstack/react-query";
-import { Activity, ShieldCheck } from "lucide-react";
+import { useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
-// Minimal Investigation Workspace scaffold (Phase 2 foundation only).
-// The real workspace panels, hypothesis tree and trace view arrive in Phase 7.
-// For now this proves the React/TS/Vite + Tailwind + TanStack Query + Lucide
-// wiring by polling the backend liveness endpoint through the dev proxy.
-
-type HealthResponse = { ok: boolean };
-
-async function fetchHealth(): Promise<HealthResponse> {
-  const response = await fetch("/health");
-  if (!response.ok) {
-    throw new Error(`health check failed: ${response.status}`);
-  }
-  return (await response.json()) as HealthResponse;
-}
+import { fetchHealth, runInvestigation, ApiError } from "@/api";
+import type { RunRequest, RunResponse } from "@/types";
+import { TopBar, type BackendStatus } from "@/components/TopBar";
+import { Composer } from "@/components/Composer";
+import { CaseSummary } from "@/components/CaseSummary";
+import { HypothesisBoard } from "@/components/HypothesisBoard";
+import { EvidencePanel } from "@/components/EvidencePanel";
+import { RecommendationPanel } from "@/components/RecommendationPanel";
+import { TracePanel } from "@/components/TracePanel";
+import { EmptyState, ErrorState, LoadingState } from "@/components/WorkspaceStates";
 
 export default function App() {
   const health = useQuery({
     queryKey: ["health"],
-    queryFn: fetchHealth,
-    refetchInterval: 5000,
+    queryFn: ({ signal }) => fetchHealth(signal),
+    refetchInterval: 10000,
   });
 
-  const status = health.isPending
-    ? "checking…"
+  const status: BackendStatus = health.isPending
+    ? "checking"
     : health.isError
-      ? "backend offline"
-      : "backend online";
+      ? "offline"
+      : "online";
+
+  const [invoiceId, setInvoiceId] = useState<string>("");
+
+  const run = useMutation<RunResponse, Error, RunRequest>({
+    mutationFn: (request) => runInvestigation(request),
+    onSuccess: (_data, request) => setInvoiceId(request.invoice_id),
+  });
+
+  const result = run.data;
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-12">
-        <header className="flex items-center gap-3">
-          <ShieldCheck className="h-7 w-7 text-emerald-400" />
-          <div>
-            <h1 className="text-xl font-semibold">Uhakika</h1>
-            <p className="text-sm text-slate-400">
-              Institutional Contract Revenue Assurance — Investigation Workspace
-            </p>
-          </div>
-        </header>
+    <div className="min-h-screen bg-slate-950 text-slate-100">
+      <TopBar status={status} />
 
-        <section className="rounded-lg border border-slate-800 bg-slate-900 p-6">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <Activity className="h-4 w-4 text-emerald-400" />
-            <span>Status: {status}</span>
-          </div>
-          <p className="mt-3 text-sm text-slate-400">
-            Scaffold only. Investigation features are disabled until the agent
-            pipeline and workspace phases are approved.
-          </p>
-        </section>
-      </div>
-    </main>
+      <main className="mx-auto max-w-7xl px-5 py-6">
+        <Composer
+          loading={run.isPending}
+          disabled={status === "offline"}
+          onSubmit={(request) => run.mutate(request)}
+        />
+
+        <div className="mt-5">
+          {run.isPending ? (
+            <LoadingState />
+          ) : run.isError ? (
+            <ErrorState message={describeError(run.error)} />
+          ) : result ? (
+            <ResultWorkspace response={result} invoiceId={invoiceId} />
+          ) : (
+            <EmptyState />
+          )}
+        </div>
+      </main>
+
+      <footer className="mx-auto max-w-7xl px-5 pb-8 pt-2">
+        <p className="text-xs text-slate-600">
+          Uhakika V0 · evidence grounded via Zetaris · conclusions derived at
+          runtime · sample mode is not sponsor proof.
+        </p>
+      </footer>
+    </div>
   );
+}
+
+function ResultWorkspace({
+  response,
+  invoiceId,
+}: {
+  response: RunResponse;
+  invoiceId: string;
+}) {
+  return (
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+      <div className="space-y-5">
+        <CaseSummary response={response} invoiceId={invoiceId} />
+        <HypothesisBoard response={response} />
+        <RecommendationPanel key={response.case_id} response={response} />
+      </div>
+      <div className="space-y-5">
+        <EvidencePanel response={response} />
+        <TracePanel response={response} />
+      </div>
+    </div>
+  );
+}
+
+function describeError(error: Error): string {
+  if (error instanceof ApiError) {
+    return error.message;
+  }
+  return "Something went wrong while running the investigation.";
 }

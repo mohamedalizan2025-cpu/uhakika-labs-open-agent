@@ -410,9 +410,59 @@ Next: Phase 6 — live Nightshift/Nemotron Evaluator critique and Scout Intent r
         this needs the runtime token (expected secret blocker) supplied by the owner.
 ```
 
+```
+Date/time: Official build window — Session 11 (Phase 7 — professional Investigation Workspace)
+Person: Ali (assistant-driven via Qwen 3.8 Flash build tooling only)
+Goal: Deliver the single enterprise-grade Investigation Workspace + Trace Panel in
+        React/TypeScript/Vite, connected to the real FastAPI POST /run contract.
+        Phase 6 (live Nightshift/Nemotron + Scout Intent) is blocked on the runtime
+        secret, so the unblocked frontend was built ahead of it; Phase 6 remains
+        untagged and is NOT claimed from this UI.
+Change: Built the workspace UI. src/types.ts mirrors the backend Pydantic contract;
+        src/api.ts is a thin credential-free layer (GET /health, POST /run) with
+        structured ApiError handling; src/lib/catalog.ts holds only the neutral
+        H1-H5 hypothesis VOCABULARY (ids/labels/what-each-tests — NO conclusions);
+        src/lib/format.ts formats TZS revenue/confidence/time. Components: TopBar
+        (identity + Sample-mode badge + live service status), Composer (question +
+        invoice id + sample-input chips), CaseSummary (prominent TZS revenue-at-risk
+        + supported cause + blocker class), HypothesisBoard (all five hypotheses
+        colour-coded supported/rejected/insufficient from the response),
+        EvidencePanel (cited IDs + source summaries), RecommendationPanel
+        (human-approval gate — a local, explain-only acknowledgement; no external
+        action in V0), TracePanel (expandable operational trace showing model_route
+        = "none (sample)"), and WorkspaceStates (empty / loading skeleton with
+        estimated pipeline stages / error-runtime-unavailable). App.tsx drives
+        everything through a TanStack Query mutation; NO hero result is hardcoded in
+        any component. Added /run to the Vite dev proxy.
+Files touched: frontend/vite.config.ts, frontend/src/{App.tsx,index.css,types.ts,
+        api.ts}, frontend/src/lib/{catalog.ts,format.ts},
+        frontend/src/components/{primitives,TopBar,Composer,CaseSummary,
+        HypothesisBoard,EvidencePanel,RecommendationPanel,TracePanel,
+        WorkspaceStates}.tsx, BUILD_LOG.md.
+Models/tools used: Qoder IDE + Qwen 3.8 Flash (build tooling only — NOT product
+        runtime). No OpenRouter extension; no model called.
+Tests: `npm run build` -> `tsc -b && vite build` green (1637 modules transformed;
+        dist emitted). Strict TS (noUnusedLocals/Parameters, verbatimModuleSyntax).
+        Backend suite unchanged and still 68 green. No network/credentials/.env.
+Result: A working, accessible (focus-visible, labelled controls, keyboard-submit)
+        Investigation Workspace renders real sample results end-to-end and shows
+        loading / success / insufficient-evidence / error-unavailable states. It uses
+        the approved React+Vite+Tailwind+Lucide+TanStack stack.
+Problems: shadcn/ui was NOT initialised — its CLI is interactive (unanswerable in
+        this non-interactive shell) and would pull additional Radix dependencies; I
+        hand-built components in the shadcn visual idiom with the already-installed
+        Tailwind + Lucide instead. Recharts was not used (no genuinely useful chart
+        yet). Visual polish/screenshots are Phase 9 territory.
+Decision: Keep every result value sourced from the backend response; label sample
+        mode honestly; build Phase 7 now and return to Phase 6 once the runtime
+        token is supplied.
+Next: Phase 8 — hardening (clean-clone validation, CI for credential-free backend
+        tests + frontend build, docs). Then the blocked Phase 6 when secrets arrive.
+```
+
 ---
 
-## Known Open Items (as of the Phase 5 evaluator-loop-hardening checkpoint)
+## Known Open Items (as of the Phase 7 investigation-UI checkpoint)
 
 - Meterless Nightshift runtime is still downloading/installing — Runtime URL and token `TBD` (env-provided later).
 - Live model route via `METERLESS_MODEL` (Nemotron reached through Nightshift) `TBD` — never claimed without a Nightshift receipt; preferred test route `nvidia/nemotron-3.5-super-vl:free` is configuration only.
@@ -425,5 +475,6 @@ Next: Phase 6 — live Nightshift/Nemotron Evaluator critique and Scout Intent r
 - **`fastapi` / `uvicorn` / `httpx` / `pytest` / `pydantic` are installed in `.venv`** (pinned in `requirements.txt`); `agent/main.py` imports FastAPI and `GET /health` is exercised by a real (non-skipped) test.
 - Canonical Zetaris variables are defined (`ZETARIS_REST_URL`, `ZETARIS_ORG_ID`, `ZETARIS_API_KEY`); the owner must populate them in `.env` for live mode (the agent never opens/edits `.env`). The `LiveZetarisAdapter` is a config-gated boundary that additionally defers execution until the Lightning-SQL request/response payload fields (still `TBD`) are validated against a reachable Zetaris service — no fields are invented.
 - **Phase 5 evaluator-loop hardening is in place:** three distinct grounded inputs (INV-004 → H4, INV-005 → H1, INV-006 → H5) resolve end-to-end; a defensive `agent/critique.py` boundary accepts only clamped-confidence, status-free model output (malformed/unknown-target critiques ignored, evidence-derived statuses never overridden); `InvestigatorAgent` turns a `ZetarisQueryError` into an honest insufficient result (no crash, no upstream-message leak). 68 tests green. Still sample-only — no UI, no live model.
+- **Phase 7 Investigation Workspace (React) is in place:** a professional single workspace + expandable Trace Panel, driven by a TanStack Query mutation over the real `POST /run` contract with loading/success/insufficient/error states and a human-approval gate; no conclusion is hardcoded in any component. `tsc -b && vite build` is green. Built AHEAD of the still-blocked Phase 6, so it displays the **sample** pipeline only. shadcn/ui was not initialised (interactive CLI); components are hand-built in that idiom with Tailwind + Lucide.
 - **`.env` currently exposes only the legacy aliases; the canonical variables are not yet present, so live Zetaris/Nightshift modes cannot run until the owner supplies them.** Sample mode works credential-free.
 - The **sample-mode** investigation pipeline works end-to-end (Phase 4); the **live** product AI path (Zetaris live queries, Nightshift/Nemotron, Scout Intent) is **not yet verified** and is not claimed.

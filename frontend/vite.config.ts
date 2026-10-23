@@ -17,6 +17,7 @@ export default defineConfig({
     // The backend URL is a local development default, not a credential.
     proxy: {
       "/health": "http://localhost:8000",
+      "/run": "http://localhost:8000",
     },
   },
 });

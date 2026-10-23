@@ -1,0 +1,97 @@
+import { useState, type FormEvent } from "react";
+import { Loader2, Search } from "lucide-react";
+import type { RunRequest } from "@/types";
+
+// The question composer. Sample invoice IDs below are queryable fixture keys
+// (not answers) — the investigation result is produced by the backend at runtime.
+
+const SAMPLE_INVOICES = ["INV-004", "INV-005", "INV-006"];
+
+export function Composer({
+  loading,
+  disabled,
+  onSubmit,
+}: {
+  loading: boolean;
+  disabled: boolean;
+  onSubmit: (request: RunRequest) => void;
+}) {
+  const [question, setQuestion] = useState(
+    "Why hasn't this invoice been paid, and what should we do about it?",
+  );
+  const [invoiceId, setInvoiceId] = useState("INV-004");
+
+  const canSubmit = question.trim().length > 0 && invoiceId.trim().length > 0 && !loading && !disabled;
+
+  function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (!canSubmit) return;
+    onSubmit({ question: question.trim(), invoice_id: invoiceId.trim(), sample_mode: true });
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 shadow-sm shadow-black/20"
+    >
+      <label htmlFor="question" className="block text-xs font-semibold uppercase tracking-wide text-slate-400">
+        Investigator question
+      </label>
+      <textarea
+        id="question"
+        value={question}
+        onChange={(e) => setQuestion(e.target.value)}
+        rows={2}
+        className="mt-2 w-full resize-y rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500"
+        placeholder="Ask why a receivable is stuck…"
+      />
+
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="flex-1">
+          <label htmlFor="invoice" className="block text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Invoice ID
+          </label>
+          <input
+            id="invoice"
+            value={invoiceId}
+            onChange={(e) => setInvoiceId(e.target.value)}
+            className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 font-mono text-sm text-slate-100"
+            placeholder="INV-004"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={!canSubmit}
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+          Run investigation
+        </button>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <span className="text-xs text-slate-500">Sample inputs:</span>
+        {SAMPLE_INVOICES.map((id) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setInvoiceId(id)}
+            className={
+              "rounded-md px-2 py-1 font-mono text-xs ring-1 ring-inset transition " +
+              (invoiceId === id
+                ? "bg-emerald-500/15 text-emerald-300 ring-emerald-500/40"
+                : "bg-slate-800/50 text-slate-400 ring-slate-700 hover:text-slate-200")
+            }
+          >
+            {id}
+          </button>
+        ))}
+      </div>
+      {disabled ? (
+        <p className="mt-3 text-xs text-amber-300/90">
+          The backend service is offline — start FastAPI (uvicorn agent.main:app) to run an investigation.
+        </p>
+      ) : null}
+    </form>
+  );
+}
