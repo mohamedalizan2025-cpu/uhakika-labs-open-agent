@@ -536,9 +536,41 @@ Decision: Re-pointed the freshly-created `phase-08-hardening` tag (created momen
         was rewritten.
 ```
 
+```
+Date/time: Official build window — Session 13 (Phase 9 — submission preparation)
+Person: Ali (assistant-driven via Qwen 3.8 Flash build tooling only)
+Goal: Prepare the hackathon submission artifacts WITHOUT creating the HackOS
+        submission, altering the roster, uploading media, or claiming unproven
+        integrations.
+Change: Added README.md (public entry: problem, hero scenario, Mermaid architecture
+        + sequence diagrams, honesty invariants, sponsor-tech map with honest
+        proven/pending status, quickstart, three grounded inputs, project status,
+        repo map, pre-existing/build/runner disclosure). Added SUBMISSION.md
+        (pitch, 4-minute demo script, 7-slide deck outline, screenshots plan,
+        proven-vs-pending sponsor claims, a PASS/FAIL self-assessment checklist, and
+        the exact remaining HUMAN steps). Added metadata.json — a submission-metadata
+        DRAFT (no secrets, `submitted:false`, `sponsor_proof_of_live_ai:false`, team
+        members `TBD`). All claims cross-checked against the code/tests; nothing is
+        overstated and Phase 6 is shown as blocked, not done.
+Files touched: README.md, SUBMISSION.md, metadata.json, BUILD_LOG.md.
+Models/tools used: Qoder IDE + Qwen 3.8 Flash (build tooling only — NOT product
+        runtime). No model called for the product.
+Tests: No product code changed; `metadata.json` and the example JSON validated with
+        `python -m json.tool`; docs secret-scanned (clean); CI is unaffected (docs
+        only) and remains green from the Phase 8 fix commit.
+Result: A judge-ready submission pack exists that is honest about what sample mode
+        proves and what the blocked live phase does not.
+Decision: Prepare only — per the standing rules, DO NOT create the HackOS submission,
+        upload the video, or publish the deck; those are the human steps in
+        SUBMISSION.md §7. After Phase 9 the autonomous build reaches its stop point.
+Next: STOP. Remaining work is human-gated: supply the Phase 6 secrets (see the
+        standing handoff packet: METERLESS_RUNTIME_TOKEN et al.) and perform the
+        SUBMISSION.md §7 manual steps.
+```
+
 ---
 
-## Known Open Items (as of the Phase 8 hardening checkpoint)
+## Known Open Items (as of the Phase 9 submission-ready checkpoint)
 
 - Meterless Nightshift runtime is still downloading/installing — Runtime URL and token `TBD` (env-provided later).
 - Live model route via `METERLESS_MODEL` (Nemotron reached through Nightshift) `TBD` — never claimed without a Nightshift receipt; preferred test route `nvidia/nemotron-3.5-super-vl:free` is configuration only.
@@ -552,6 +584,7 @@ Decision: Re-pointed the freshly-created `phase-08-hardening` tag (created momen
 - Canonical Zetaris variables are defined (`ZETARIS_REST_URL`, `ZETARIS_ORG_ID`, `ZETARIS_API_KEY`); the owner must populate them in `.env` for live mode (the agent never opens/edits `.env`). The `LiveZetarisAdapter` is a config-gated boundary that additionally defers execution until the Lightning-SQL request/response payload fields (still `TBD`) are validated against a reachable Zetaris service — no fields are invented.
 - **Phase 5 evaluator-loop hardening is in place:** three distinct grounded inputs (INV-004 → H4, INV-005 → H1, INV-006 → H5) resolve end-to-end; a defensive `agent/critique.py` boundary accepts only clamped-confidence, status-free model output (malformed/unknown-target critiques ignored, evidence-derived statuses never overridden); `InvestigatorAgent` turns a `ZetarisQueryError` into an honest insufficient result (no crash, no upstream-message leak). 68 tests green. Still sample-only — no UI, no live model.
 - **Phase 7 Investigation Workspace (React) is in place:** a professional single workspace + expandable Trace Panel, driven by a TanStack Query mutation over the real `POST /run` contract with loading/success/insufficient/error states and a human-approval gate; no conclusion is hardcoded in any component. `tsc -b && vite build` is green. Built AHEAD of the still-blocked Phase 6, so it displays the **sample** pipeline only. shadcn/ui was not initialised (interactive CLI); components are hand-built in that idiom with Tailwind + Lucide.
-- **Phase 8 hardening is in place:** credential-free GitHub Actions (backend pytest with no env + a committed-`.env` guard; frontend `npm ci` + type-check + build), three reproducible sample input/output artifacts (H4/H1/H5) generated from the real pipeline, a `SETUP.md` runbook, and `*.log` ignored. 68 backend tests green; a clean clone builds with an empty environment. No frontend runtime-test harness (deliberate scope choice). Phase 6 remains blocked on `METERLESS_RUNTIME_TOKEN`.
+- **Phase 8 hardening is in place:** credential-free GitHub Actions (backend pytest with no env + a committed-`.env` guard; frontend `npm ci` + type-check + build), three reproducible sample input/output artifacts (H4/H1/H5) generated from the real pipeline, a `SETUP.md` runbook, and `*.log` ignored. 68 backend tests green; a clean clone builds with an empty environment. The first CI runs failed on an unpinned FastAPI transitive (starlette) emitting a `StarletteDeprecationWarning`; the real fix was a centralized `pytest.ini` warning policy (first-party UserWarnings -> errors; ignore the third-party starlette TestClient deprecation). CI is now **green on GitHub** (both jobs) — verified, not assumed.
+- **Phase 9 submission preparation is complete:** `README.md` (with Mermaid architecture + sequence diagrams and honest sponsor-tech proven/pending status), `SUBMISSION.md` (demo script, deck outline, screenshots plan, PASS/FAIL self-assessment, exact remaining human steps), and a `metadata.json` DRAFT (`submitted:false`, `sponsor_proof_of_live_ai:false`). **The HackOS submission is intentionally NOT created**; media/deck/roster are human-only. This is the autonomous stop point.
 - **`.env` currently exposes only the legacy aliases; the canonical variables are not yet present, so live Zetaris/Nightshift modes cannot run until the owner supplies them.** Sample mode works credential-free.
 - The **sample-mode** investigation pipeline works end-to-end (Phase 4); the **live** product AI path (Zetaris live queries, Nightshift/Nemotron, Scout Intent) is **not yet verified** and is not claimed.

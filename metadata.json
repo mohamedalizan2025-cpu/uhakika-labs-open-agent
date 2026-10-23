@@ -1,0 +1,80 @@
+{
+  "_note": "DRAFT submission metadata for the human HackOS steps only. This project has NOT been submitted. No secrets included; values marked TBD are for the owner to confirm. Claims reflect sample-mode V0 only; the live Nightshift/Nemotron/Scout-Intent path is not yet proven.",
+  "title": "Uhakika Labs — Institutional Contract Revenue Assurance",
+  "tagline": "The agent that explains and proves why an earned invoice is stuck.",
+  "track": "Track 2 — The Agent That Can Explain Why",
+  "event": "Open Agent Hackathon 2026",
+  "description": "Uhakika investigates unpaid public-sector/institutional supplier invoices in Tanzania. From one question it retrieves contract, delivery, acceptance, compliance, communication and payment evidence through Zetaris, evaluates five explicit hypotheses with a rule engine, and returns the single grounded root cause, the revenue at risk, the rejected alternatives with their disproof, and an audit-ready operational trace — with a human approving any action. Conclusions are derived at runtime and every claim cites the evidence that proves it.",
+  "repository": "https://github.com/mohamedalizan2025-cpu/uhakika-labs-open-agent",
+  "branch": "main",
+  "tags": [
+    "phase-01-specification",
+    "phase-02-foundation",
+    "phase-03-zetaris-data",
+    "phase-04-agent-thin-slice",
+    "phase-05-evaluator-loop",
+    "phase-07-investigation-ui",
+    "phase-08-hardening",
+    "phase-09-submission-ready"
+  ],
+  "team": {
+    "roster_size": 3,
+    "roster_changed": false,
+    "implementer": "Ali",
+    "members": [
+      { "name": "Ali", "role": "Product owner — AI/data, integration, sponsor technology, architecture" },
+      { "name": "TBD", "role": "Frontend / UI / UX" },
+      { "name": "TBD", "role": "Backend / integrations / testing" }
+    ]
+  },
+  "sponsor_technology": {
+    "zetaris": {
+      "role": "Mandatory live data layer for all business evidence.",
+      "status": "wired_in_sample_mode_over_synthetic_fixtures",
+      "live_status": "pending_live_credentials_and_contract_validation"
+    },
+    "meterless_nightshift": {
+      "role": "Product AI runtime for every live model call.",
+      "status": "not_yet_wired_blocked_on_METERLESS_RUNTIME_TOKEN"
+    },
+    "nemotron": {
+      "role": "Powers the EvaluatorAgent critique via Nightshift on the live path.",
+      "route_source": "METERLESS_MODEL (configuration only; never claimed without a Nightshift receipt)",
+      "status": "not_claimed"
+    },
+    "scout_intent": {
+      "role": "Required live-routing engine.",
+      "status": "not_verified",
+      "current_router": "fallback (deterministic; never mislabelled as Scout Intent)"
+    }
+  },
+  "build_tooling": {
+    "ide": "Qoder",
+    "assistant_model": "Qwen 3.8 Flash",
+    "role": "authoring/build assistance only",
+    "is_product_runtime": false,
+    "openrouter_used": false
+  },
+  "demo": {
+    "mode": "sample (credential-free)",
+    "entrypoint": "POST /run",
+    "inputs": ["INV-004", "INV-005", "INV-006"],
+    "expected": {
+      "INV-004": { "supported_cause": "H4", "revenue_at_risk": 126000000, "blocker_class": "execution_documentation" },
+      "INV-005": { "supported_cause": "H1", "revenue_at_risk": 45000000, "blocker_class": "supplier_controllable" },
+      "INV-006": { "supported_cause": "H5", "revenue_at_risk": 75000000, "blocker_class": "external_payment" }
+    }
+  },
+  "quality": {
+    "backend_tests": 68,
+    "ci": "GitHub Actions (credential-free backend pytest + frontend build) green on clean clone",
+    "secrets_committed": false,
+    "env_read_by_app": false
+  },
+  "status": {
+    "completed_phases": ["1", "2", "3", "4", "5", "7", "8", "9"],
+    "blocked_phases": ["6"],
+    "submitted": false,
+    "sponsor_proof_of_live_ai": false
+  }
+}
