@@ -36,7 +36,15 @@ export function HypothesisBoard({ response }: { response: RunResponse }) {
           const style = STATUS_STYLES[status];
           const Icon = ICONS[status];
           return (
-            <li key={hypothesis.id} className={"m-3 rounded-lg border p-3.5 " + style.card}>
+            <li
+              key={hypothesis.id}
+              className={
+                "m-3 rounded-lg border p-3.5" +
+                (status === "supported" ? " border-l-4" : "") +
+                " " +
+                style.card
+              }
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">

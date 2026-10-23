@@ -57,6 +57,20 @@ export function CaseSummary({
           >
             {formatTzs(response.revenue_at_risk)}
           </p>
+          {/* Relative exposure gauge */}
+          {response.revenue_at_risk > 0 && (
+            <div className="mt-3 space-y-1">
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-rose-500/70 to-rose-400 transition-all duration-500"
+                  style={{
+                    width: `${Math.min((response.revenue_at_risk / 200_000_000) * 100, 100).toFixed(1)}%`,
+                  }}
+                />
+              </div>
+              <p className="text-[10px] text-slate-500">relative exposure</p>
+            </div>
+          )}
         </div>
       </div>
     </Card>
