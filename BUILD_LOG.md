@@ -217,17 +217,65 @@ Next: Phase 2 foundation — install approved deps in .venv; reconcile config to
         genuine blockers.
 ```
 
+```
+Date/time: Official build window — Session 7 (Phase 2 foundation complete)
+Person: Ali (assistant-driven via Qwen 3.8 Flash build tooling only)
+Goal: Finish Phase 2 foundation — reconcile config to canonical names, convert
+        tests to pytest, install approved deps in .venv, verify /health, and
+        scaffold the approved React/TypeScript/Vite frontend. NO investigation
+        features, NO POST /run.
+Change: Installed pinned backend deps in .venv (fastapi 0.162.0, uvicorn 0.54.0,
+        httpx 0.28.1, pytest 9.1.1, pydantic 2.14.1). Converted tests/test_adapters
+        .py and tests/test_app.py from stdlib-unittest to pytest and added
+        tests/test_project_contract.py (validates .env.example against the
+        canonical contract; reads the EXAMPLE file only, never .env). Added
+        .env.example, agent/models.py (Pydantic domain + RunRequest/RunResponse/
+        CaseState contracts — schemas only, no endpoint) and agent/logging_util.py
+        (redacting logger + operational TraceLogger). Refreshed stale docstrings in
+        main.py/test_app.py now that FastAPI is installed. Scaffolded frontend/ as a
+        deterministic hand-authored React+TS+Vite app with Tailwind v4
+        (@tailwindcss/vite), @ alias, TanStack Query (health polling) and Lucide
+        icons; Vite dev proxies /health -> http://localhost:8000. shadcn/ui
+        component init is deferred to Phase 7 (its Tailwind + @-alias
+        prerequisites are already configured here).
+Files touched: agent/config.py, agent/main.py, agent/models.py,
+        agent/logging_util.py, agent/llm.py, agent/tools_zetaris.py, .env.example,
+        requirements.txt, tests/{__init__,test_config,test_adapters,test_app,
+        test_project_contract}.py, frontend/** (package.json, package-lock.json,
+        vite.config.ts, tsconfig*.json, index.html, src/*, .gitignore), BUILD_LOG.md.
+Models/tools used: Qoder IDE + Qwen 3.8 Flash (build tooling only — NOT product
+        runtime). No OpenRouter extension installed.
+Tests: `.venv\Scripts\python.exe -m pytest -q` -> 19 passed (config/adapters/app/
+        contract; the app test exercises GET /health via TestClient). Frontend
+        `npm run build` -> `tsc -b` type-check clean + `vite build` produced dist/.
+        No calls to live services; no .env access; no credentials used.
+Result: Backend config + adapter boundaries + /health are green; frontend builds.
+        Still NO investigation features and NO POST /run. Nothing claimed as built
+        beyond a foundation scaffold.
+Problems: create-vite v9.3.1 prompted interactively for a linter, which the
+        non-interactive shell cannot answer; abandoned the interactive scaffold and
+        hand-authored the frontend instead (fully deterministic). An esbuild
+        install-script warning appeared, but the production build ran fine.
+        Python 3.14.7 and Node v26.8.1 are compatible.
+Decision: Hand-author the frontend for determinism; defer shadcn/ui component init
+        to Phase 7; commit backend + frontend foundation together only because both
+        are green (phase-checkpoint protocol).
+Next: Phase 3 — credential-free CSV-fixture sample adapter + live Zetaris adapter
+        interface with a smoke `SELECT 1`. Live queries stay blocked until the owner
+        populates the canonical Zetaris variables (the agent never edits .env).
+```
+
 ---
 
-## Known Open Items (as of the Phase 1 canonical-contract document-correction gate)
+## Known Open Items (as of the Phase 2 foundation checkpoint)
 
 - Meterless Nightshift runtime is still downloading/installing — Runtime URL and token `TBD` (env-provided later).
 - Live model route via `METERLESS_MODEL` (Nemotron reached through Nightshift) `TBD` — never claimed without a Nightshift receipt; preferred test route `nvidia/nemotron-3.5-super-vl:free` is configuration only.
 - **Scout Intent** is the REQUIRED live-routing Engine — **not yet implemented**; a deterministic `fallback` router is used and labeled until verified.
-- Backend (Python/FastAPI) + frontend (React/TypeScript/Vite) stacks are **chosen but not installed**. Internal API routes `TBD`.
+- Backend (Python/FastAPI) + frontend (React/TypeScript/Vite + Tailwind + TanStack Query + Lucide) are **installed and build cleanly**. shadcn/ui component init is deferred to Phase 7 (prerequisites configured). Internal API routes beyond `/health` still `TBD`.
 - Judge-facing `POST /run` endpoint `TBD` — documented conceptually, **planned, no code exists**.
-- **Phase 2 skeleton exists but runs no features:** config module + Zetaris/Nightshift adapter *interfaces* + stdlib-unittest tests are in place; the investigation logic and `POST /run` are still not implemented.
-- **`fastapi` / `uvicorn` / `pytest` are NOT installed** (deferred; AGENTS §8). `agent/main.py` imports FastAPI and is exercised only by a skipped test until an owner-approved install.
+- **Phase 2 foundation exists but runs no features:** canonical config module, Pydantic domain/API contracts, sanitized logging, Zetaris/Nightshift adapter *interfaces*, pytest suite (19 green incl. `/health`), `.env.example`, and the frontend scaffold are in place; the investigation logic and `POST /run` are still not implemented.
+- **`fastapi` / `uvicorn` / `httpx` / `pytest` / `pydantic` are installed in `.venv`** (pinned in `requirements.txt`); `agent/main.py` imports FastAPI and `GET /health` is exercised by a real (non-skipped) test.
 - Canonical Zetaris variables are defined (`ZETARIS_REST_URL`, `ZETARIS_ORG_ID`, `ZETARIS_API_KEY`); the owner must populate them in `.env` for live mode (the agent never opens/edits `.env`).
 - **`.env` currently exposes only the legacy aliases; the canonical variables are not yet present, so live Zetaris/Nightshift modes cannot run until the owner supplies them.** Sample mode works credential-free.
 - No Uhakika product functionality implemented yet.

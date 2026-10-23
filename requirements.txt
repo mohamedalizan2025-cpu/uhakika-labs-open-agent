@@ -1,0 +1,12 @@
+# Uhakika — approved direct backend dependencies (installed inside .venv).
+# Only direct dependencies are pinned here; never a machine-specific pip freeze.
+#
+# NOTE: python-dotenv is intentionally NOT used. The application must never open
+# or read `.env` (AGENTS.md §3 security), so configuration reads `os.environ`
+# directly instead of loading a .env file.
+
+fastapi==0.162.0
+uvicorn==0.54.0
+httpx==0.28.1
+pytest==9.1.1
+pydantic==2.14.1
