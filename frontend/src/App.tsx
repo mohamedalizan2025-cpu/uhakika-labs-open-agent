@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { fetchHealth, runInvestigation, ApiError } from "@/api";
@@ -33,6 +33,22 @@ export default function App() {
   });
 
   const result = run.data;
+
+  // Auto-run the hero scenario once on first load (UX, not hardcoded output).
+  const autoRan = useRef(false);
+  useEffect(() => {
+    if (status === "online" && !autoRan.current) {
+      autoRan.current = true;
+      const timer = setTimeout(() => {
+        run.mutate({
+          question: "Why hasn't our TZS 126,000,000 invoice been paid?",
+          invoice_id: "INV-004",
+        });
+      }, 800); // brief settle so the page renders before the stepper animates
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
