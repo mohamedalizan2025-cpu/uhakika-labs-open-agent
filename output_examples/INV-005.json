@@ -1,0 +1,123 @@
+{
+  "case_id": "case-1b2559409501",
+  "revenue_at_risk": 45000000,
+  "supported_cause": "Delivery incomplete",
+  "blocker_class": "supplier_controllable",
+  "rejected_hypotheses": [
+    {
+      "id": "H3",
+      "reason": "submitted on or before the required date"
+    },
+    {
+      "id": "H4",
+      "reason": "all required compliance items are submitted"
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "INV-005",
+      "source": "invoices",
+      "summary": "Invoice INV-005 amount 45000000 TZS status submitted"
+    },
+    {
+      "evidence_id": "CTR-002",
+      "source": "contracts",
+      "summary": "Contract CTR-002 requires_compliance_docs=true clause=CLAUSE-4.1"
+    },
+    {
+      "evidence_id": "CLAUSE-4.1",
+      "source": "contracts.clause_ref",
+      "summary": "Governing clause citation CLAUSE-4.1"
+    },
+    {
+      "evidence_id": "DEL-011",
+      "source": "deliveries",
+      "summary": "Delivery DEL-011 status partial delivered_date "
+    },
+    {
+      "evidence_id": "CMP-007",
+      "source": "compliance_items",
+      "summary": "business_license required=true submitted=true status=verified"
+    },
+    {
+      "evidence_id": "PAY-012",
+      "source": "payment_status",
+      "summary": "Payment PAY-012 stage pending reason="
+    }
+  ],
+  "recommendation": "Address the supported cause H1 evidenced by DEL-011; TZS 45000000 at risk.",
+  "approval_status": "pending",
+  "trace": [
+    {
+      "ts": "2026-10-23T20:58:29.236143+00:00",
+      "agent": "IntentRouter",
+      "action": "route",
+      "tool": "intent_router",
+      "source_result_summary": null,
+      "decision": "playbook=revenue_assurance label=fallback",
+      "confidence": null,
+      "retry_count": 0,
+      "model_route": null,
+      "evidence_ids": []
+    },
+    {
+      "ts": "2026-10-23T20:58:29.236405+00:00",
+      "agent": "InvestigatorAgent",
+      "action": "generate_hypotheses",
+      "tool": null,
+      "source_result_summary": null,
+      "decision": "framed 5 hypotheses H1-H5",
+      "confidence": null,
+      "retry_count": 0,
+      "model_route": null,
+      "evidence_ids": []
+    },
+    {
+      "ts": "2026-10-23T20:58:29.242400+00:00",
+      "agent": "EvidenceAgent",
+      "action": "retrieve_evidence",
+      "tool": "zetaris.run_query",
+      "source_result_summary": "7 queries; 6 cited records",
+      "decision": null,
+      "confidence": null,
+      "retry_count": 0,
+      "model_route": null,
+      "evidence_ids": [
+        "INV-005",
+        "CTR-002",
+        "CLAUSE-4.1",
+        "DEL-011",
+        "CMP-007",
+        "PAY-012"
+      ]
+    },
+    {
+      "ts": "2026-10-23T20:58:29.242594+00:00",
+      "agent": "EvaluatorAgent",
+      "action": "evaluate_hypotheses",
+      "tool": null,
+      "source_result_summary": null,
+      "decision": "supported=['H1', 'H2'] rejected=['H3', 'H4'] insufficient=['H5'] cause=H1",
+      "confidence": 0.8,
+      "retry_count": 0,
+      "model_route": null,
+      "evidence_ids": [
+        "DEL-011"
+      ]
+    },
+    {
+      "ts": "2026-10-23T20:58:29.242736+00:00",
+      "agent": "InvestigatorAgent",
+      "action": "draft_recommendation",
+      "tool": null,
+      "source_result_summary": null,
+      "decision": "approval_status=pending",
+      "confidence": null,
+      "retry_count": 0,
+      "model_route": null,
+      "evidence_ids": [
+        "INV-005"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,143 @@
+{
+  "case_id": "case-5826adefe9dc",
+  "revenue_at_risk": 75000000,
+  "supported_cause": "External buyer / payment-stage blockage",
+  "blocker_class": "external_payment",
+  "rejected_hypotheses": [
+    {
+      "id": "H1",
+      "reason": "a complete delivery exists"
+    },
+    {
+      "id": "H2",
+      "reason": "an issued acceptance certificate exists"
+    },
+    {
+      "id": "H3",
+      "reason": "submitted on or before the required date"
+    },
+    {
+      "id": "H4",
+      "reason": "all required compliance items are submitted"
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "INV-006",
+      "source": "invoices",
+      "summary": "Invoice INV-006 amount 75000000 TZS status submitted"
+    },
+    {
+      "evidence_id": "CTR-003",
+      "source": "contracts",
+      "summary": "Contract CTR-003 requires_compliance_docs=true clause=CLAUSE-9.3"
+    },
+    {
+      "evidence_id": "CLAUSE-9.3",
+      "source": "contracts.clause_ref",
+      "summary": "Governing clause citation CLAUSE-9.3"
+    },
+    {
+      "evidence_id": "DEL-013",
+      "source": "deliveries",
+      "summary": "Delivery DEL-013 status complete delivered_date 2025-06-28"
+    },
+    {
+      "evidence_id": "CERT-020",
+      "source": "acceptance_records",
+      "summary": "Certificate CERT-020 status issued accepted_date 2025-07-05"
+    },
+    {
+      "evidence_id": "CMP-008",
+      "source": "compliance_items",
+      "summary": "tax_clearance required=true submitted=true status=verified"
+    },
+    {
+      "evidence_id": "MSG-041",
+      "source": "communications",
+      "summary": "Message MSG-041 (inbound) references_requirement=false: Treasury disbursement queued pending budget allocation; all deliverables confirmed accepted"
+    },
+    {
+      "evidence_id": "PAY-014",
+      "source": "payment_status",
+      "summary": "Payment PAY-014 stage held reason=Buyer treasury disbursement queued pending budget allocation"
+    }
+  ],
+  "recommendation": "Escalate the external buyer/payment blockage (PAY-014); TZS 75000000 at risk pending the buyer.",
+  "approval_status": "pending",
+  "trace": [
+    {
+      "ts": "2026-10-23T20:58:29.245093+00:00",
+      "agent": "IntentRouter",
+      "action": "route",
+      "tool": "intent_router",
+      "source_result_summary": null,
+      "decision": "playbook=revenue_assurance label=fallback",
+      "confidence": null,
+      "retry_count": 0,
+      "model_route": null,
+      "evidence_ids": []
+    },
+    {
+      "ts": "2026-10-23T20:58:29.245253+00:00",
+      "agent": "InvestigatorAgent",
+      "action": "generate_hypotheses",
+      "tool": null,
+      "source_result_summary": null,
+      "decision": "framed 5 hypotheses H1-H5",
+      "confidence": null,
+      "retry_count": 0,
+      "model_route": null,
+      "evidence_ids": []
+    },
+    {
+      "ts": "2026-10-23T20:58:29.256726+00:00",
+      "agent": "EvidenceAgent",
+      "action": "retrieve_evidence",
+      "tool": "zetaris.run_query",
+      "source_result_summary": "7 queries; 8 cited records",
+      "decision": null,
+      "confidence": null,
+      "retry_count": 0,
+      "model_route": null,
+      "evidence_ids": [
+        "INV-006",
+        "CTR-003",
+        "CLAUSE-9.3",
+        "DEL-013",
+        "CERT-020",
+        "CMP-008",
+        "MSG-041",
+        "PAY-014"
+      ]
+    },
+    {
+      "ts": "2026-10-23T20:58:29.256940+00:00",
+      "agent": "EvaluatorAgent",
+      "action": "evaluate_hypotheses",
+      "tool": null,
+      "source_result_summary": null,
+      "decision": "supported=['H5'] rejected=['H1', 'H2', 'H3', 'H4'] insufficient=[] cause=H5",
+      "confidence": 0.8,
+      "retry_count": 0,
+      "model_route": null,
+      "evidence_ids": [
+        "PAY-014"
+      ]
+    },
+    {
+      "ts": "2026-10-23T20:58:29.257124+00:00",
+      "agent": "InvestigatorAgent",
+      "action": "draft_recommendation",
+      "tool": null,
+      "source_result_summary": null,
+      "decision": "approval_status=pending",
+      "confidence": null,
+      "retry_count": 0,
+      "model_route": null,
+      "evidence_ids": [
+        "INV-006"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,159 @@
+{
+  "case_id": "case-e439cba6fb9b",
+  "revenue_at_risk": 126000000,
+  "supported_cause": "Required compliance / tax evidence missing",
+  "blocker_class": "execution_documentation",
+  "rejected_hypotheses": [
+    {
+      "id": "H1",
+      "reason": "a complete delivery exists"
+    },
+    {
+      "id": "H2",
+      "reason": "an issued acceptance certificate exists"
+    },
+    {
+      "id": "H3",
+      "reason": "submitted on or before the required date"
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "INV-004",
+      "source": "invoices",
+      "summary": "Invoice INV-004 amount 126000000 TZS status submitted"
+    },
+    {
+      "evidence_id": "CTR-001",
+      "source": "contracts",
+      "summary": "Contract CTR-001 requires_compliance_docs=true clause=CLAUSE-7.2"
+    },
+    {
+      "evidence_id": "CLAUSE-7.2",
+      "source": "contracts.clause_ref",
+      "summary": "Governing clause citation CLAUSE-7.2"
+    },
+    {
+      "evidence_id": "DEL-009",
+      "source": "deliveries",
+      "summary": "Delivery DEL-009 status complete delivered_date 2025-08-28"
+    },
+    {
+      "evidence_id": "CERT-018",
+      "source": "acceptance_records",
+      "summary": "Certificate CERT-018 status issued accepted_date 2025-09-05"
+    },
+    {
+      "evidence_id": "CMP-005",
+      "source": "compliance_items",
+      "summary": "tax_clearance required=true submitted=false status=outstanding"
+    },
+    {
+      "evidence_id": "CMP-006",
+      "source": "compliance_items",
+      "summary": "vat_registration required=true submitted=true status=verified"
+    },
+    {
+      "evidence_id": "CMP-002",
+      "source": "compliance_items",
+      "summary": "business_license required=true submitted=true status=verified"
+    },
+    {
+      "evidence_id": "MSG-037",
+      "source": "communications",
+      "summary": "Message MSG-037 (inbound) references_requirement=true: Buyer requested a current tax clearance certificate before releasing payment"
+    },
+    {
+      "evidence_id": "MSG-030",
+      "source": "communications",
+      "summary": "Message MSG-030 (outbound) references_requirement=false: Supplier confirmed milestone 2 was delivered and accepted"
+    },
+    {
+      "evidence_id": "PAY-011",
+      "source": "payment_status",
+      "summary": "Payment PAY-011 stage under_review reason=Payment held pending tax clearance from buyer finance"
+    }
+  ],
+  "recommendation": "Resolve the outstanding required compliance/tax documentation (CMP-005, CLAUSE-7.2, MSG-037) and resubmit to release TZS 126000000 at risk.",
+  "approval_status": "pending",
+  "trace": [
+    {
+      "ts": "2026-10-23T20:58:29.213617+00:00",
+      "agent": "IntentRouter",
+      "action": "route",
+      "tool": "intent_router",
+      "source_result_summary": null,
+      "decision": "playbook=revenue_assurance label=fallback",
+      "confidence": null,
+      "retry_count": 0,
+      "model_route": null,
+      "evidence_ids": []
+    },
+    {
+      "ts": "2026-10-23T20:58:29.213861+00:00",
+      "agent": "InvestigatorAgent",
+      "action": "generate_hypotheses",
+      "tool": null,
+      "source_result_summary": null,
+      "decision": "framed 5 hypotheses H1-H5",
+      "confidence": null,
+      "retry_count": 0,
+      "model_route": null,
+      "evidence_ids": []
+    },
+    {
+      "ts": "2026-10-23T20:58:29.224726+00:00",
+      "agent": "EvidenceAgent",
+      "action": "retrieve_evidence",
+      "tool": "zetaris.run_query",
+      "source_result_summary": "7 queries; 11 cited records",
+      "decision": null,
+      "confidence": null,
+      "retry_count": 0,
+      "model_route": null,
+      "evidence_ids": [
+        "INV-004",
+        "CTR-001",
+        "CLAUSE-7.2",
+        "DEL-009",
+        "CERT-018",
+        "CMP-005",
+        "CMP-006",
+        "CMP-002",
+        "MSG-037",
+        "MSG-030",
+        "PAY-011"
+      ]
+    },
+    {
+      "ts": "2026-10-23T20:58:29.224956+00:00",
+      "agent": "EvaluatorAgent",
+      "action": "evaluate_hypotheses",
+      "tool": null,
+      "source_result_summary": null,
+      "decision": "supported=['H4', 'H5'] rejected=['H1', 'H2', 'H3'] insufficient=[] cause=H4",
+      "confidence": 0.8,
+      "retry_count": 0,
+      "model_route": null,
+      "evidence_ids": [
+        "CMP-005",
+        "CLAUSE-7.2",
+        "MSG-037"
+      ]
+    },
+    {
+      "ts": "2026-10-23T20:58:29.225141+00:00",
+      "agent": "InvestigatorAgent",
+      "action": "draft_recommendation",
+      "tool": null,
+      "source_result_summary": null,
+      "decision": "approval_status=pending",
+      "confidence": null,
+      "retry_count": 0,
+      "model_route": null,
+      "evidence_ids": [
+        "INV-004"
+      ]
+    }
+  ]
+}
