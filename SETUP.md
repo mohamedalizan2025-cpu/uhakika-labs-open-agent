@@ -91,8 +91,12 @@ host or credential is hardcoded in the UI.
 
 ```bash
 # from the repo root
-.venv\Scripts\python.exe -m pytest -q -W error::UserWarning
+.venv\Scripts\python.exe -m pytest -q
 ```
+
+The warning policy lives in `pytest.ini` (first-party `UserWarning`s are promoted
+to errors; the third-party starlette `TestClient` deprecation is ignored) so the
+command is the same locally and in CI.
 
 68 tests cover: canonical config contracts (names-only errors, secret masking),
 `.env.example` contract, the credential-free sample Zetaris adapter, fixture
@@ -119,7 +123,7 @@ A fresh clone must build and test with an **empty environment**:
 git clone <repo> && cd <repo>
 python -m venv .venv && .venv\Scripts\activate
 pip install -r requirements.txt
-python -m pytest -q -W error::UserWarning           # green with no env vars set
+python -m pytest -q                              # green with no env vars set
 cd frontend && npm ci && npm run build               # green
 ```
 

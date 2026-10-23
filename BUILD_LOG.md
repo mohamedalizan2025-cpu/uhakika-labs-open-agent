@@ -514,17 +514,26 @@ Change: Root cause: `starlette` is an unpinned FastAPI transitive; on a fresh CI
         `StarletteDeprecationWarning` (a UserWarning subclass), which the strict
         `-W error::UserWarning` gate promoted into a collection error. My local venv
         has starlette 1.9.0 (no such warning), so the suite was green here but not
-        there. Pinned `starlette==1.9.0` (the validated version) so CI == local.
-        This is a deliberate reproducibility pin, not a machine freeze.
-Files touched: requirements.txt, BUILD_LOG.md.
-Tests: local suite stays green (68) against the pinned starlette; the moved
-        `phase-08-hardening` tag now points at a commit whose CI actually passes.
-Result: Reproducibility gate is honest — the exact failure the phase exists to
-        prevent (works-here/fails-there) was caught by CI and fixed at the pin level.
+        there. First attempt pinned `starlette==1.9.0` — but CI was ALREADY
+        resolving 1.9.0, so the pin alone did not change the outcome (it remains as
+        valid version-drift hygiene). The real fix is a centralized `pytest.ini`
+        warning policy: promote first-party `UserWarning`s to errors (keep catching
+        Pydantic smells) but `ignore` the third-party
+        `starlette.exceptions.StarletteDeprecationWarning` emitted at TestClient
+        import, which is outside our control. Pointed CI and SETUP at `pytest -q` so
+        local and CI share one policy.
+Files touched: requirements.txt, pytest.ini, .github/workflows/ci.yml, SETUP.md,
+        BUILD_LOG.md.
+Tests: local `pytest -q` -> 68 green under the new pytest.ini (the ignore class
+        path resolves). Verified frontend CI job already green; backend re-run to
+        confirm on GitHub.
+Result: Reproducibility gate is honest — the exact works-here/fails-there failure the
+        phase exists to prevent was caught by CI and fixed centrally, without weakening
+        our own warning guard.
 Decision: Re-pointed the freshly-created `phase-08-hardening` tag (created moments
         earlier in this same session for a checkpoint that was not yet green) to the
-        fix commit, rather than leaving a red tag. No shared/published history was
-        rewritten.
+        green fix commit, rather than leaving a red tag. No shared/published history
+        was rewritten.
 ```
 
 ---

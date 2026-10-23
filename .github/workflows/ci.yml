@@ -42,8 +42,10 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run test suite
-        # No env vars are set: tests derive sample mode and settings internally.
-        run: python -m pytest -q -W error::UserWarning
+        # No env vars are set: tests derive sample mode/settings internally.
+        # Warning policy (UserWarnings->errors, ignore the starlette transitive
+        # deprecation) lives in pytest.ini so local and CI behave identically.
+        run: python -m pytest -q
 
   frontend:
     name: Frontend build
