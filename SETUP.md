@@ -1,0 +1,169 @@
+# Setup & Reproducibility Runbook
+
+This is the local setup, usage, and reproducibility guide for **Uhakika Labs —
+Institutional Contract Revenue Assurance**. The public-facing README is produced
+in Phase 9; this document is the engineering runbook.
+
+Everything here runs **credential-free in sample mode**. The application never
+opens, reads, or prints `.env` — it reads `os.environ` only (see `agent/config.py`).
+
+---
+
+## 1. Prerequisites
+
+| Tool    | Version                | Notes                                        |
+|---------|------------------------|----------------------------------------------|
+| Python  | 3.11+ (validated 3.14) | Backend + tests                              |
+| Node.js | 20+ (validated 26)     | Frontend dev/build                           |
+| npm     | 10+                    | Installs are scoped to `frontend/` only      |
+
+No global package installs. Backend deps live in `.venv`; frontend deps live in
+`frontend/node_modules` (both are git-ignored).
+
+---
+
+## 2. Backend
+
+```bash
+# from the repo root
+python -m venv .venv
+.venv\Scripts\activate            # Windows   (source .venv/bin/activate on *nix)
+pip install -r requirements.txt
+```
+
+`requirements.txt` pins the direct dependencies only (fastapi, uvicorn, httpx,
+pytest, pydantic). `python-dotenv` is intentionally absent — the app must not
+load `.env`.
+
+Run the API (sample mode):
+
+```bash
+set SAMPLE_MODE=true              # Windows cmd (export SAMPLE_MODE=true on *nix)
+.venv\Scripts\python.exe -m uvicorn agent.main:app --reload --port 8000
+```
+
+- `GET  /health` → `{"ok": true}` (liveness).
+- `POST /run` → runs the real sample pipeline over the CSV fixtures and derives a
+  grounded conclusion at runtime.
+
+> `SAMPLE_MODE` defaults to **false**. If it is unset the app attempts live mode,
+> which fails closed with a NAMES-only configuration error until the canonical
+> live variables are populated and the live contract is validated (Phase 6).
+
+### Configuration (canonical environment names only)
+
+See `.env.example` (placeholder values only — never commit a real `.env`):
+
+| Variable                  | Purpose                                   | Secret? |
+|---------------------------|-------------------------------------------|---------|
+| `METERLESS_BASE_URL`      | Nightshift runtime base URL               | no      |
+| `METERLESS_RUNTIME_TOKEN` | Nightshift runtime token                  | **yes** |
+| `METERLESS_MODEL`         | Nemotron model route (config, not a claim)| no      |
+| `ZETARIS_REST_URL`        | Zetaris REST base URL                      | no      |
+| `ZETARIS_ORG_ID`          | Zetaris organisation id                    | no      |
+| `ZETARIS_API_KEY`         | Zetaris API key                            | **yes** |
+| `SAMPLE_MODE`             | `true` → credential-free fixture pipeline  | no      |
+| `MAX_EVIDENCE_RETRIES`    | Bounded evidence-retry budget (default 3)  | no      |
+
+Legacy aliases (`METERLESS_API_KEY`, `NEMOTRON_MODEL`, `ZETARIS_BASE_URL`) are
+ignored, never read or migrated.
+
+---
+
+## 3. Frontend
+
+```bash
+cd frontend
+npm ci                            # clean install from package-lock.json
+npm run dev                       # http://localhost:5173 (proxies /health, /run to :8000)
+```
+
+- Start the backend first (section 2), then `npm run dev`, then open the preview.
+- Try the sample inputs `INV-004`, `INV-005`, `INV-006` (chips in the composer).
+- Production build / type-check: `npm run build` (runs `tsc -b && vite build`).
+
+The dev server proxies `/health` and `/run` to `http://localhost:8000`; no API
+host or credential is hardcoded in the UI.
+
+---
+
+## 4. Tests
+
+```bash
+# from the repo root
+.venv\Scripts\python.exe -m pytest -q -W error::UserWarning
+```
+
+68 tests cover: canonical config contracts (names-only errors, secret masking),
+`.env.example` contract, the credential-free sample Zetaris adapter, fixture
+integrity + DATA_CONTRACT validation, the live-adapter config gate + one-statement
+rule, the factory, the intent router (always `fallback`), the evaluator rule
+engine (grounding, anti-fabrication, evidence-removal downgrade, bounded retries,
+adapter-failure → honest insufficient), the model-critique safety boundary
+(clamped confidence, status never overridden, malformed input ignored), and HTTP
+e2e for three distinct inputs. No test touches the network, a credential, or `.env`.
+
+Regenerate the sample artifacts:
+
+```bash
+.venv\Scripts\python.exe scripts\generate_examples.py
+```
+
+---
+
+## 5. Clean-clone validation
+
+A fresh clone must build and test with an **empty environment**:
+
+```bash
+git clone <repo> && cd <repo>
+python -m venv .venv && .venv\Scripts\activate
+pip install -r requirements.txt
+python -m pytest -q -W error::UserWarning           # green with no env vars set
+cd frontend && npm ci && npm run build               # green
+```
+
+GitHub Actions (`.github/workflows/ci.yml`) runs exactly this on every push to
+`main` and on pull requests — the backend job asserts no `.env` is committed.
+
+---
+
+## 6. Windows clean-start notes
+
+- The shell here is `cmd.exe`. Set env vars with `set VAR=value` in the same
+  session before launching a command.
+- Use the venv interpreter explicitly: `.venv\Scripts\python.exe ...`.
+- Unix-only tools are not required; there is no `make`/`bash` dependency.
+
+---
+
+## 7. Sponsor-boundary verification checklist (Phase 8)
+
+- **Sample mode needs no credentials** — verified: the whole suite and the UI run
+  with an empty environment (fixtures under `data/fixtures/`).
+- **No hardcoded conclusions** — conclusions are derived at runtime by the
+  evaluator rule engine; tests remove CMP-005 and assert H4 downgrades. No
+  component or module stores a hero answer.
+- **All business evidence via Zetaris** — `EvidenceAgent` only ever queries
+  through `ZetarisAdapter.run_query` (one statement, fresh request id per call).
+- **All product AI via Nightshift** — the live runtime is reached only through
+  `NightshiftAdapter` (Phase 6, not yet wired); sample mode makes **no** model
+  call and the trace reports `model_route: none`.
+- **Scout Intent is not faked** — routing stays deterministic and is labelled
+  `fallback`; it is never mislabelled as Scout Intent until the Engine is verified.
+- **No secrets or chain-of-thought in traces** — the trace holds operational
+  actions/decisions only; secrets are masked (repr=False) and errors list variable
+  NAMES only.
+- **≥3 sample inputs/outputs** — `input_examples/` and `output_examples/` ship
+  INV-004 (H4), INV-005 (H1), INV-006 (H5).
+
+---
+
+## 8. What is blocked
+
+**Phase 6 (live path)** is blocked on a secret the owner must supply: the
+`METERLESS_RUNTIME_TOKEN` (plus `METERLESS_BASE_URL`, `METERLESS_MODEL`) and the
+live `ZETARIS_*` values, together with validation of the live Lightning-SQL
+request/response contract against a reachable service. Until then the live
+adapters fail closed (NAMES-only errors) and nothing is claimed from them. Sample
+mode is explicitly **not** sponsor proof.

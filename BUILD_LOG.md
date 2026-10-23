@@ -460,9 +460,53 @@ Next: Phase 8 — hardening (clean-clone validation, CI for credential-free back
         tests + frontend build, docs). Then the blocked Phase 6 when secrets arrive.
 ```
 
+```
+Date/time: Official build window — Session 12 (Phase 8 — hardening & reproducibility)
+Person: Ali (assistant-driven via Qwen 3.8 Flash build tooling only)
+Goal: Make the build reproducible and prove the sponsor boundaries hold on a clean,
+        credential-free clone — CI, sample input/output artifacts, and a setup/usage
+        runbook. No new product features; Phase 6 stays blocked and is not claimed.
+Change: (1) Added .github/workflows/ci.yml — a credential-free gate: the backend job
+        guards against a committed .env, installs pinned deps, and runs pytest with NO
+        environment set; the frontend job runs `npm ci` from the lockfile then
+        `tsc -b && vite build`. (2) Added scripts/generate_examples.py, which runs the
+        REAL sample pipeline for INV-004/005/006 and writes input_examples/,
+        output_examples/ and a sanitized logs/sample_trace.jsonl — three distinct
+        grounded outcomes (H4/H1/H5) proving the pipeline is not single-input; the
+        artifacts are documentation only and nothing in the app reads them. (3) Added
+        SETUP.md — prerequisites, backend/frontend run steps, the canonical env-name
+        table (names only, secrets flagged), test commands, clean-clone + Windows
+        clean-start validation, and a sponsor-boundary verification checklist. (4)
+        Ignored local *.log dev artifacts in .gitignore.
+Files touched: .github/workflows/ci.yml, scripts/generate_examples.py,
+        input_examples/*.json, output_examples/*.json, logs/sample_trace.jsonl,
+        SETUP.md, .gitignore, BUILD_LOG.md.
+Models/tools used: Qoder IDE + Qwen 3.8 Flash (build tooling only — NOT product
+        runtime). No OpenRouter extension; no model called.
+Tests: `.venv\Scripts\python.exe -m pytest -q -W error::UserWarning` -> 68 passed
+        (unchanged; no product code modified). `scripts\generate_examples.py`
+        regenerated the three example pairs cleanly. `npm run build` (from Phase 7)
+        remains green; CI mirrors exactly these credential-free commands.
+Result: A clean clone builds and tests with an empty environment; three reproducible
+        sample inputs/outputs are committed; the sponsor boundaries (Zetaris-only
+        evidence, Nightshift-only AI, fallback-not-Scout routing, no secrets/no
+        chain-of-thought in traces, no hardcoded conclusions) are documented and
+        cross-checked against the tests.
+Problems: No frontend RUNTIME test harness was added — introducing Vitest/testing-
+        library would pull extra dev dependencies for marginal value, so the frontend
+        gate is TypeScript type-check + production build (honest scope choice).
+Decision: Keep the phase granular (CI af1a91a, examples 919f77d, docs/log this
+        checkpoint), each pushed to main; do not fabricate Phase 6. Ship the
+        reproducibility layer now; wire the live path only once the owner supplies
+        METERLESS_RUNTIME_TOKEN and a reachable Zetaris contract.
+Next: Phase 9 — submission PREPARATION (public README, architecture diagram, sponsor
+        explanation, demo script, metadata, PASS/FAIL checklist). Phase 6 remains
+        blocked on the runtime secret.
+```
+
 ---
 
-## Known Open Items (as of the Phase 7 investigation-UI checkpoint)
+## Known Open Items (as of the Phase 8 hardening checkpoint)
 
 - Meterless Nightshift runtime is still downloading/installing — Runtime URL and token `TBD` (env-provided later).
 - Live model route via `METERLESS_MODEL` (Nemotron reached through Nightshift) `TBD` — never claimed without a Nightshift receipt; preferred test route `nvidia/nemotron-3.5-super-vl:free` is configuration only.
@@ -476,5 +520,6 @@ Next: Phase 8 — hardening (clean-clone validation, CI for credential-free back
 - Canonical Zetaris variables are defined (`ZETARIS_REST_URL`, `ZETARIS_ORG_ID`, `ZETARIS_API_KEY`); the owner must populate them in `.env` for live mode (the agent never opens/edits `.env`). The `LiveZetarisAdapter` is a config-gated boundary that additionally defers execution until the Lightning-SQL request/response payload fields (still `TBD`) are validated against a reachable Zetaris service — no fields are invented.
 - **Phase 5 evaluator-loop hardening is in place:** three distinct grounded inputs (INV-004 → H4, INV-005 → H1, INV-006 → H5) resolve end-to-end; a defensive `agent/critique.py` boundary accepts only clamped-confidence, status-free model output (malformed/unknown-target critiques ignored, evidence-derived statuses never overridden); `InvestigatorAgent` turns a `ZetarisQueryError` into an honest insufficient result (no crash, no upstream-message leak). 68 tests green. Still sample-only — no UI, no live model.
 - **Phase 7 Investigation Workspace (React) is in place:** a professional single workspace + expandable Trace Panel, driven by a TanStack Query mutation over the real `POST /run` contract with loading/success/insufficient/error states and a human-approval gate; no conclusion is hardcoded in any component. `tsc -b && vite build` is green. Built AHEAD of the still-blocked Phase 6, so it displays the **sample** pipeline only. shadcn/ui was not initialised (interactive CLI); components are hand-built in that idiom with Tailwind + Lucide.
+- **Phase 8 hardening is in place:** credential-free GitHub Actions (backend pytest with no env + a committed-`.env` guard; frontend `npm ci` + type-check + build), three reproducible sample input/output artifacts (H4/H1/H5) generated from the real pipeline, a `SETUP.md` runbook, and `*.log` ignored. 68 backend tests green; a clean clone builds with an empty environment. No frontend runtime-test harness (deliberate scope choice). Phase 6 remains blocked on `METERLESS_RUNTIME_TOKEN`.
 - **`.env` currently exposes only the legacy aliases; the canonical variables are not yet present, so live Zetaris/Nightshift modes cannot run until the owner supplies them.** Sample mode works credential-free.
 - The **sample-mode** investigation pipeline works end-to-end (Phase 4); the **live** product AI path (Zetaris live queries, Nightshift/Nemotron, Scout Intent) is **not yet verified** and is not claimed.
