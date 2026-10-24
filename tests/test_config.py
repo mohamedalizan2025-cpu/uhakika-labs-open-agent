@@ -51,8 +51,7 @@ def test_legacy_aliases_are_ignored_and_not_migrated() -> None:
     assert s.meterless_runtime_token is None
     assert s.meterless_model is None
     assert s.zetaris_rest_url is None
-    assert s.sample_mode is False
-    # And must not appear anywhere in the status or repr.
+    assert s.sample_mode is True  # absent SAMPLE_MODE defaults to sample (safe)
     assert _SECRET not in repr(s)
     assert "legacy-model" not in repr(s)
     assert "https://legacy.invalid" not in str(s.redacted_status())
@@ -85,8 +84,7 @@ def test_missing_values_are_none_not_hardcoded() -> None:
     assert s.meterless_base_url is None
     assert s.meterless_model is None
     assert s.zetaris_rest_url is None
-    assert s.sample_mode is False
-    # A safe non-endpoint default, not a fabricated credential.
+    assert s.sample_mode is True  # absent SAMPLE_MODE defaults to sample (safe)
     assert s.max_evidence_retries == 3
 
 
@@ -110,8 +108,11 @@ def test_sample_mode_starts_without_credentials() -> None:
 
 
 def test_live_mode_error_reports_names_only() -> None:
-    # Only a secret is provided; everything else live requires is missing.
-    s = Settings.from_environ({ENV_METERLESS_RUNTIME_TOKEN: _SECRET})
+    # Explicitly set SAMPLE_MODE=false to attempt live validation.
+    s = Settings.from_environ({
+        ENV_METERLESS_RUNTIME_TOKEN: _SECRET,
+        ENV_SAMPLE_MODE: "false",
+    })
     with pytest.raises(ConfigError) as exc:
         s.validate_for_mode()
     message = str(exc.value)

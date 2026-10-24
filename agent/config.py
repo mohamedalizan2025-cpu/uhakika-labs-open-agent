@@ -74,6 +74,7 @@ LIVE_REQUIRED_ENV_NAMES: tuple[str, ...] = (
 )
 
 _TRUTHY = {"1", "true", "yes", "on"}
+_FALSY = {"0", "false", "no", "off", "unset"}
 # Non-secret operational default (not an endpoint/credential/model id).
 DEFAULT_MAX_EVIDENCE_RETRIES = 3
 
@@ -89,8 +90,14 @@ def _presence(value: Optional[str]) -> str:
     return "set" if value else "unset"
 
 
-def _parse_bool(value: Optional[str]) -> bool:
-    return (value or "").strip().lower() in _TRUTHY
+def _parse_sample_mode(value: Optional[str]) -> bool:
+    """Absent or empty SAMPLE_MODE defaults to True (safe: sample mode).
+
+    Only explicit falsy values ('false', '0', 'no', 'off', 'unset') select live.
+    """
+    if value is None or value.strip() == "":
+        return True  # safe default: sample mode
+    return value.strip().lower() not in _FALSY
 
 
 def _parse_retries(value: Optional[str]) -> int:
@@ -113,7 +120,7 @@ class Settings:
     meterless_model: Optional[str] = None
     zetaris_rest_url: Optional[str] = None
     zetaris_org_id: Optional[str] = None
-    sample_mode: bool = False
+    sample_mode: bool = True  # safe default: sample mode
     max_evidence_retries: int = DEFAULT_MAX_EVIDENCE_RETRIES
     # Secrets: excluded from the generated repr to avoid leakage.
     meterless_runtime_token: Optional[str] = field(default=None, repr=False)
@@ -136,7 +143,7 @@ class Settings:
             meterless_model=env.get(ENV_METERLESS_MODEL),
             zetaris_rest_url=env.get(ENV_ZETARIS_REST_URL),
             zetaris_org_id=env.get(ENV_ZETARIS_ORG_ID),
-            sample_mode=_parse_bool(env.get(ENV_SAMPLE_MODE)),
+            sample_mode=_parse_sample_mode(env.get(ENV_SAMPLE_MODE)),
             max_evidence_retries=_parse_retries(env.get(ENV_MAX_EVIDENCE_RETRIES)),
             meterless_runtime_token=env.get(ENV_METERLESS_RUNTIME_TOKEN),
             zetaris_api_key=env.get(ENV_ZETARIS_API_KEY),

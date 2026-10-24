@@ -59,8 +59,16 @@ export interface RunResponse {
 }
 
 export interface IntegrationStatus {
+  configured: boolean;
+  reachable: boolean;
+  verified: boolean;
+  operational: boolean;
+  missing_env_names: string[];
+}
+
+export interface ScoutIntentStatus {
   status: string;
-  missing: string[];
+  verified: boolean;
 }
 
 export interface HealthResponse {
@@ -71,6 +79,7 @@ export interface HealthResponse {
   integrations: {
     zetaris: IntegrationStatus;
     nightshift: IntegrationStatus;
+    scout_intent: ScoutIntentStatus;
   };
   missing_env_names: string[];
 }

@@ -19,19 +19,21 @@ const HEALTH_SAMPLE = {
   sample_ready: true,
   live_ready: false,
   integrations: {
-    zetaris: { status: "sample_only", missing: ["ZETARIS_REST_URL", "ZETARIS_ORG_ID", "ZETARIS_API_KEY"] },
-    nightshift: { status: "not_configured", missing: ["METERLESS_BASE_URL", "METERLESS_RUNTIME_TOKEN", "METERLESS_MODEL"] },
+    zetaris: { configured: false, reachable: false, verified: false, operational: false, missing_env_names: ["ZETARIS_REST_URL", "ZETARIS_ORG_ID", "ZETARIS_API_KEY"] },
+    nightshift: { configured: false, reachable: false, verified: false, operational: false, missing_env_names: ["METERLESS_BASE_URL", "METERLESS_RUNTIME_TOKEN", "METERLESS_MODEL"] },
+    scout_intent: { status: "fallback", verified: false },
   },
   missing_env_names: ["METERLESS_BASE_URL", "METERLESS_RUNTIME_TOKEN", "METERLESS_MODEL", "ZETARIS_REST_URL", "ZETARIS_ORG_ID", "ZETARIS_API_KEY"],
 };
 
 const HEALTH_LIVE_READY = {
   ...HEALTH_SAMPLE,
-  default_mode: "live" as const,
+  default_mode: "sample" as const,
   live_ready: true,
   integrations: {
-    zetaris: { status: "live_ready", missing: [] },
-    nightshift: { status: "live_ready", missing: [] },
+    zetaris: { configured: true, reachable: true, verified: true, operational: true, missing_env_names: [] },
+    nightshift: { configured: true, reachable: true, verified: true, operational: true, missing_env_names: [] },
+    scout_intent: { status: "routed", verified: true },
   },
   missing_env_names: [],
 };

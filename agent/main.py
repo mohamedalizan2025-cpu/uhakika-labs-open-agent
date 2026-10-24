@@ -6,85 +6,80 @@ endpoint.
 
 ``POST /run`` honors the explicit ``sample_mode`` field from the request:
 - ``sample_mode=true`` runs the credential-free sample pipeline.
-- ``sample_mode=false`` requires a live configuration; if live integrations are
-  not ready, the endpoint returns a clear 503 (NAMES only), never falling back
-  silently.
+- ``sample_mode=false`` requires ALL live integrations to be operational;
+  otherwise returns a clear 503 (NAMES only), never falling back silently.
 
-``GET /health`` returns sanitized operational readiness (no secrets, no URLs
-with credentials).
+``GET /health`` returns sanitized operational readiness via the CapabilityRegistry.
+No secrets, no URLs with credentials, no values — only names and boolean flags.
 
 Run locally with ``uvicorn agent.main:app --reload``.
 """
 from __future__ import annotations
 
+from dataclasses import replace
+
 from fastapi import FastAPI, HTTPException
 
+from agent.capabilities import CapabilityRegistry
 from agent.config import Settings
 from agent.investigator_agent import InvestigatorAgent
 from agent.models import RunRequest, RunResponse
 
 
-def _sample_ready(settings: Settings) -> bool:
-    """Sample mode is always available (credential-free, fixtures on disk)."""
-    return True
-
-
-def _live_ready(settings: Settings) -> bool:
-    """Live mode requires all six canonical variables populated AND validated."""
-    return len(settings.missing_for_live()) == 0
-
-
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None,
+    capabilities: CapabilityRegistry | None = None,
+) -> FastAPI:
     """App factory. Loads env-driven settings and wires the judge-facing API."""
     settings = settings or Settings.from_environ()
+
+    # Build the capability registry; update 'configured' from settings.
+    caps = capabilities or CapabilityRegistry()
+    caps.update_configuration(settings)
+
     app = FastAPI(title="Uhakika", version="0.0.0")
     app.state.settings = settings
+    app.state.capabilities = caps
 
     @app.get("/health")
     def health() -> dict:
         """Sanitized operational readiness — no secrets, no URLs with credentials."""
-        missing = settings.missing_for_live()
+        all_missing = settings.missing_for_live()
         return {
             "ok": True,
             "default_mode": "sample" if settings.sample_mode else "live",
-            "sample_ready": _sample_ready(settings),
-            "live_ready": _live_ready(settings),
-            "integrations": {
-                "zetaris": {
-                    "status": "sample_only" if not _live_ready(settings) else "live_ready",
-                    "missing": [n for n in missing if n.startswith("ZETARIS_")],
-                },
-                "nightshift": {
-                    "status": "not_configured" if any(n.startswith("METERLESS_") for n in missing) else "live_ready",
-                    "missing": [n for n in missing if n.startswith("METERLESS_")],
-                },
-            },
-            "missing_env_names": list(missing),
+            "sample_ready": True,  # fixtures on disk, always available
+            "live_ready": caps.live_ready,  # requires ALL operational
+            "integrations": caps.health_payload(),
+            "missing_env_names": list(all_missing),
         }
 
     @app.post("/run", response_model=RunResponse)
     def run(request: RunRequest) -> RunResponse:
         """Single judge-facing investigation endpoint.
 
-        Honors the explicit request.sample_mode: sample=true always works;
-        sample=false requires live readiness or returns 503 (names only).
+        Honors the explicit request.sample_mode:
+        - sample_mode=true always works (credential-free pipeline).
+        - sample_mode=false requires live_ready; returns 503 if not operational.
         """
         if not request.sample_mode:
-            # Live requested — verify readiness before proceeding.
-            missing = settings.missing_for_live()
-            if missing:
+            # Live requested — verify FULL operational readiness.
+            if not caps.live_ready:
+                missing = settings.missing_for_live()
                 raise HTTPException(
                     status_code=503,
                     detail={
-                        "error": "live_mode_not_ready",
-                        "message": "Live mode requires environment variables that are not configured.",
-                        "missing_env_names": missing,
+                        "error": "live_mode_not_operational",
+                        "message": (
+                            "Live mode requires all integrations to be operational "
+                            "(configured, reachable, verified, adapter implemented). "
+                            "Current state does not meet this threshold."
+                        ),
+                        "missing_env_names": missing if missing else [],
+                        "live_ready": False,
                     },
                 )
         # Build the investigator with the requested mode.
-        # Sample mode uses the credential-free fixture adapter.
-        # Live mode would use the validated Zetaris + Nightshift adapters.
-        from dataclasses import replace
         effective_settings = replace(settings, sample_mode=request.sample_mode)
         investigator = InvestigatorAgent(effective_settings)
         return investigator.run(request)

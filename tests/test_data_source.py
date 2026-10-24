@@ -24,6 +24,7 @@ def test_live_mode_selects_live_adapter_when_configured() -> None:
             ENV_ZETARIS_REST_URL: "http://localhost:8888/api/v1.0",
             ENV_ZETARIS_ORG_ID: "org-1",
             ENV_ZETARIS_API_KEY: "configured-not-printed",
+            "SAMPLE_MODE": "false",  # explicit live mode
         }
     )
     assert isinstance(build_zetaris_adapter(settings), LiveZetarisAdapter)
