@@ -218,31 +218,55 @@ flowchart LR
 
 ---
 
-## 10. API Contracts (conceptual — not implemented)
+## 10. API Contracts
 
-> **`POST /run` is planned documentation only — no code exists yet.** These are conceptual shapes to align the team. **Do not treat as built.** Final field names must be validated against Zetaris and Nightshift contracts.
+> **`POST /run` and `GET /health` are IMPLEMENTED** (agent/main.py, agent/models.py).
+> The contract below reflects the actual Pydantic + TypeScript type definitions.
 
-**Required judge-facing endpoint — `POST /run`**
+**Judge-facing endpoint — `POST /run`**
 
-Conceptual request:
+Request (all fields required):
 ```
 {
   "question": "Why hasn't our TZS 126,000,000 invoice been paid?",
   "invoice_id": "INV-004",
-  "sample_mode": false
+  "sample_mode": true
 }
 ```
+`sample_mode` is REQUIRED (no default). When `true`, the server runs the
+credential-free fixture pipeline. When `false`, the server requires live
+configuration; if live is not ready, it returns HTTP 503 with missing
+environment-variable NAMES only — never a silent fallback.
 
-Conceptual response:
+Response:
 ```
 {
   "case_id": "...",
   "revenue_at_risk": 126000000,
   "supported_cause": "...",
-  "rejected_hypotheses": [],
-  "evidence": [],
+  "blocker_class": "execution_documentation | supplier_controllable | external_payment | null",
+  "rejected_hypotheses": [{ "id": "H1", "reason": "..." }],
+  "evidence": [{ "evidence_id": "...", "source": "...", "summary": "..." }],
   "recommendation": "...",
-  "trace": []
+  "approval_status": "pending",
+  "trace": [...]
+}
+```
+
+**Readiness endpoint — `GET /health`**
+
+Response (sanitized — no secrets, no credential-bearing URLs):
+```
+{
+  "ok": true,
+  "default_mode": "sample",
+  "sample_ready": true,
+  "live_ready": false,
+  "integrations": {
+    "zetaris": { "status": "sample_only", "missing": ["ZETARIS_REST_URL", ...] },
+    "nightshift": { "status": "not_configured", "missing": ["METERLESS_...", ...] }
+  },
+  "missing_env_names": ["METERLESS_BASE_URL", ...]
 }
 ```
 
@@ -335,9 +359,9 @@ Approved structure added during build: `frontend/` (React + TypeScript + Vite ap
 - Concrete model route via `METERLESS_MODEL` (keep configurable; Nemotron through Nightshift; prove by a Nightshift receipt).
 - Scout Intent wiring (required for the live routing stage; a deterministic `fallback` router is used until verified).
 - Exact Zetaris REST request/response field names and auth flow (validate against live instance).
-- Backend (Python/FastAPI) and frontend (React/TypeScript/Vite) stacks are chosen; package installation + clean-clone verification are pending in later phases.
-- Internal API routes and payloads (conceptual only).
-- Trace store persistence and max-retry constant value.
-- `POST /run` request/response field names (conceptual above; **planned, not implemented** — no code exists).
+- Backend (Python/FastAPI) and frontend (React/TypeScript/Vite) stacks are chosen and implemented.
+- Internal API routes and payloads are implemented (see section 10 above).
+- Trace store uses in-memory for V0 (persisted later: TBD).
+- `POST /run` request/response field names are defined in code (`agent/models.py`, `frontend/src/types.ts`).
 
 Nothing above may be presented as built until verified and logged in `BUILD_LOG.md`.

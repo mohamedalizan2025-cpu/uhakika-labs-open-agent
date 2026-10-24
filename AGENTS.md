@@ -76,7 +76,13 @@ User
 - **Demo/screenshots must hide all credentials.** Mask or crop any key material before capture.
 - **Never give build tooling (Qoder/Qwen) the product's NVIDIA/Nightshift provider credentials.** Those secrets belong only to the product runtime and its environment.
 
-**Canonical environment-variable names** (values are intentionally never recorded here, and `.env` is never opened, read, or printed): `METERLESS_BASE_URL`, `METERLESS_RUNTIME_TOKEN`, `METERLESS_MODEL`, `ZETARIS_REST_URL`, `ZETARIS_ORG_ID`, `ZETARIS_API_KEY`, `SAMPLE_MODE`, `MAX_EVIDENCE_RETRIES`. These eight are the **only supported names.** The following are **prohibited legacy aliases** and must never be supported, documented, or silently migrated: `METERLESS_API_KEY`, `NEMOTRON_MODEL`, `ZETARIS_BASE_URL`. Config loading must **ignore legacy aliases** and report missing variables by **name only** (never a value).
+**Canonical environment-variable names** (values are intentionally never recorded here): `METERLESS_BASE_URL`, `METERLESS_RUNTIME_TOKEN`, `METERLESS_MODEL`, `ZETARIS_REST_URL`, `ZETARIS_ORG_ID`, `ZETARIS_API_KEY`, `SAMPLE_MODE`, `MAX_EVIDENCE_RETRIES`. These eight are the **only supported names.** The following are **prohibited legacy aliases** and must never be supported, documented, or silently migrated: `METERLESS_API_KEY`, `NEMOTRON_MODEL`, `ZETARIS_BASE_URL`. Config loading must **ignore legacy aliases** and report missing variables by **name only** (never a value).
+
+**.env security model:**
+- `.env` is Git-ignored and never committed.
+- The application runtime loads `.env` locally through the approved `python-dotenv` library (`load_dotenv(override=False)` — real OS environment variables always take precedence).
+- **Prohibited:** the AI/operator (Qoder) manually opening, reading, displaying, parsing, or reporting `.env` contents.
+- **Permitted:** the application itself loading `.env` at process startup through the configuration mechanism described above. Loaded values are never logged or exposed in error messages.
 
 ---
 

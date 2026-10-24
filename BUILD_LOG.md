@@ -568,6 +568,54 @@ Next: STOP. Remaining work is human-gated: supply the Phase 6 secrets (see the
         SUBMISSION.md §7 manual steps.
 ```
 
+```
+Date/time: Official build window — Session 14 (frontend polish, 4 commits)
+Person: Ali (assistant-driven via Qwen 3.8 Flash build tooling only)
+Goal: Improve demo impact (judging: Demo 15 + UX 10) via frontend polish.
+Change: acfbf78 — animated pipeline stepper (WorkspaceStates) + revenue exposure
+        gauge bar (CaseSummary) + hypothesis-card accent stripe (HypothesisBoard).
+        a65b929 — evidence-source-type icons via Lucide (EvidencePanel).
+        69ebf22 — auto-run hero scenario INV-004 on first page load (App.tsx).
+        ff8e07c — one-click sample scenario chips (Composer).
+Files touched: WorkspaceStates.tsx, CaseSummary.tsx, HypothesisBoard.tsx,
+        EvidencePanel.tsx, App.tsx, Composer.tsx.
+Tests: `tsc -b && vite build` green after each commit.
+Result: Polished UI; auto-run was convenient but corrected in Session 15 to be
+        opt-in only (CODEX review finding 1).
+```
+
+```
+Date/time: Official build window — Session 15 (pre-live hardening checkpoint)
+Person: Ali (CODEX review findings applied via Qwen 3.8 Flash build tooling)
+Goal: Correct sample/live mode safety, .env loading, health readiness, frontend
+        runtime tests, CI, and documentation claims before requesting credentials.
+Change: PLH-1 Sample/Live mode safety: RunRequest.sample_mode REQUIRED (no default);
+        removed implicit {sample_mode:true} merge in api.ts; mode selector in TopBar;
+        auto-run gated on VITE_DEMO_AUTORUN (default false); guided-demo button;
+        live never silently falls back (503 + NAMES).
+        PLH-2 /health extended: readiness contract (ok, default_mode, sample_ready,
+        live_ready, integrations, missing_env_names).
+        PLH-3 .env: added python-dotenv==1.1.0, load_dotenv(override=False) at
+        module import; AGENTS.md updated to distinguish operator-prohibited vs
+        runtime-permitted .env access; .env.example comment corrected.
+        PLH-4 Frontend tests: Vitest + RTL + jest-dom + user-event + jsdom (14 tests);
+        vitest.config.ts; test excluded from build tsconfig; CI step added.
+        PLH-5 Docs: ARCHITECTURE.md §10 (POST /run IS implemented); models.py
+        docstring; SETUP.md fixed; README, SUBMISSION, metadata reconciled.
+        PLH-6 CI: checkout@v5, setup-python@v6, setup-node@v5; frontend test:run step.
+Files touched: agent/main.py, agent/config.py, agent/models.py, requirements.txt,
+        .github/workflows/ci.yml, .env.example, AGENTS.md, ARCHITECTURE.md, README.md,
+        SETUP.md, SUBMISSION.md, metadata.json, BUILD_LOG.md, frontend/src/App.tsx,
+        frontend/src/api.ts, frontend/src/types.ts, frontend/src/components/TopBar.tsx,
+        frontend/src/components/Composer.tsx, frontend/vite.config.ts,
+        frontend/vitest.config.ts, frontend/tsconfig.app.json, frontend/package.json,
+        frontend/src/test/*.
+Tests: backend pytest -q → 68 green; frontend vitest run → 14 green;
+        tsc -b && vite build → green.
+Result: Pre-live hardening checkpoint complete. All findings addressed. Ready for
+        Phase 6 credentials when the owner provides them.
+```
+
 ---
 
 ## Known Open Items (as of the Phase 9 submission-ready checkpoint)
@@ -581,7 +629,7 @@ Next: STOP. Remaining work is human-gated: supply the Phase 6 secrets (see the
 - **Phase 3 evidence layer (sample) is in place:** synthetic CSV hero fixtures + provenance markers, a credential-free `SampleZetarisAdapter` over the same `run_query(sql, request_id)` contract, a factory, and integrity tests.
 - **Phase 4 agent thin slice is in place:** `IntentRouter` (labeled `fallback`), `InvestigatorAgent`/`EvidenceAgent`/`EvaluatorAgent`, and `POST /run` produce a grounded, runtime-derived conclusion (50 tests green incl. HTTP e2e, anti-fabrication and bounded-retry). This is the **sample** path only — no UI and no live model/provider claims.
 - **`fastapi` / `uvicorn` / `httpx` / `pytest` / `pydantic` are installed in `.venv`** (pinned in `requirements.txt`); `agent/main.py` imports FastAPI and `GET /health` is exercised by a real (non-skipped) test.
-- Canonical Zetaris variables are defined (`ZETARIS_REST_URL`, `ZETARIS_ORG_ID`, `ZETARIS_API_KEY`); the owner must populate them in `.env` for live mode (the agent never opens/edits `.env`). The `LiveZetarisAdapter` is a config-gated boundary that additionally defers execution until the Lightning-SQL request/response payload fields (still `TBD`) are validated against a reachable Zetaris service — no fields are invented.
+- Canonical Zetaris variables are defined (`ZETARIS_REST_URL`, `ZETARIS_ORG_ID`, `ZETARIS_API_KEY`); the owner must populate them in `.env` for live mode. The application loads `.env` at runtime via `python-dotenv(override=False)`; the AI/operator never opens or inspects `.env`. The `LiveZetarisAdapter` is a config-gated boundary that additionally defers execution until the Lightning-SQL request/response payload fields (still `TBD`) are validated against a reachable Zetaris service — no fields are invented.
 - **Phase 5 evaluator-loop hardening is in place:** three distinct grounded inputs (INV-004 → H4, INV-005 → H1, INV-006 → H5) resolve end-to-end; a defensive `agent/critique.py` boundary accepts only clamped-confidence, status-free model output (malformed/unknown-target critiques ignored, evidence-derived statuses never overridden); `InvestigatorAgent` turns a `ZetarisQueryError` into an honest insufficient result (no crash, no upstream-message leak). 68 tests green. Still sample-only — no UI, no live model.
 - **Phase 7 Investigation Workspace (React) is in place:** a professional single workspace + expandable Trace Panel, driven by a TanStack Query mutation over the real `POST /run` contract with loading/success/insufficient/error states and a human-approval gate; no conclusion is hardcoded in any component. `tsc -b && vite build` is green. Built AHEAD of the still-blocked Phase 6, so it displays the **sample** pipeline only. shadcn/ui was not initialised (interactive CLI); components are hand-built in that idiom with Tailwind + Lucide.
 - **Phase 8 hardening is in place:** credential-free GitHub Actions (backend pytest with no env + a committed-`.env` guard; frontend `npm ci` + type-check + build), three reproducible sample input/output artifacts (H4/H1/H5) generated from the real pipeline, a `SETUP.md` runbook, and `*.log` ignored. 68 backend tests green; a clean clone builds with an empty environment. The first CI runs failed on an unpinned FastAPI transitive (starlette) emitting a `StarletteDeprecationWarning`; the real fix was a centralized `pytest.ini` warning policy (first-party UserWarnings -> errors; ignore the third-party starlette TestClient deprecation). CI is now **green on GitHub** (both jobs) — verified, not assumed.

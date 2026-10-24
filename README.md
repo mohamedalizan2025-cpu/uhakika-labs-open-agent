@@ -126,7 +126,7 @@ sequenceDiagram
 
 | Sponsor | Role in Uhakika | Current state |
 |---|---|---|
-| **Zetaris** | The mandatory live data layer for all business evidence. | Sample adapter over synthetic CSV fixtures is fully wired; the live REST/Lightning-SQL adapter is a config-gated boundary, not yet run against a live instance. |
+| **Zetaris** | The mandatory data layer for all business evidence (live-mode invariant). | Sample adapter over synthetic CSV fixtures is fully wired; the live REST/Lightning-SQL adapter is a config-gated boundary, not yet run against a live instance. Phase 3 delivered the data contract, fixtures, and adapter boundary — it is NOT proof of live Zetaris execution. |
 | **Meterless Nightshift** | The product AI runtime for every live model call. | Not yet wired — blocked on `METERLESS_RUNTIME_TOKEN`. |
 | **Nemotron (via Nightshift)** | Powers the EvaluatorAgent's critique on the live path. | Not yet claimed; the model route comes from `METERLESS_MODEL` config only. |
 | **Scout Intent** | Required live routing engine. | Live routing is `TBD`; the deterministic `fallback` router is used and honestly labelled until Scout Intent is verified. |
@@ -170,14 +170,15 @@ Recorded sample inputs/outputs live in [`input_examples/`](input_examples) and
 
 | Phase | Status |
 |---|---|
-| 1 Specification · 2 Foundation · 3 Zetaris data · 4 Agent thin slice · 5 Evaluator loop | ✅ complete & tagged |
+| 1 Specification · 2 Foundation · 3 Zetaris data contract + fixtures + adapter boundary · 4 Agent thin slice · 5 Evaluator loop | ✅ complete & tagged |
 | 7 Investigation Workspace (React) | ✅ complete & tagged |
 | 8 Hardening & reproducibility (CI green on a clean clone) | ✅ complete & tagged |
 | 9 Submission preparation | ✅ this document set |
 | 6 Live Nightshift / Nemotron / Scout Intent | ⛔ **blocked** — needs `METERLESS_RUNTIME_TOKEN` (+ live `ZETARIS_*`) and validation of the live contracts. Not mocked, not claimed. |
 
-68 backend tests green; frontend `tsc -b && vite build` green; GitHub Actions
-runs both on every push with an empty environment.
+68 backend tests + 14 frontend Vitest tests green; frontend `tsc -b && vite build`
+green; GitHub Actions runs backend + frontend tests + build on every push with an
+empty environment.
 
 ---
 

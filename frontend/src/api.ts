@@ -44,17 +44,24 @@ export async function runInvestigation(
     response = await fetch("/run", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sample_mode: true, ...request }),
+      body: JSON.stringify(request), // caller provides explicit sample_mode
       signal,
     });
   } catch {
     throw new ApiError("Could not reach the investigation service");
   }
   if (!response.ok) {
-    throw new ApiError(
-      `Investigation failed (HTTP ${response.status}). The runtime may be unavailable.`,
-      response.status,
-    );
+    // Attempt to extract structured error detail from the server.
+    let detail = `Investigation failed (HTTP ${response.status}).`;
+    try {
+      const err = await response.json();
+      if (err?.detail?.message) {
+        detail = err.detail.message;
+      } else if (typeof err?.detail === "string") {
+        detail = err.detail;
+      }
+    } catch { /* use generic message */ }
+    throw new ApiError(detail, response.status);
   }
   return readJson<RunResponse>(response);
 }

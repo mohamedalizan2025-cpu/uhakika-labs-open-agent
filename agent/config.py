@@ -1,9 +1,15 @@
 """Central configuration for Uhakika.
 
 Reads ONLY the canonical environment-variable names defined in AGENTS.md §3 /
-BUILD_PLAN.md §3. This module NEVER loads, opens, or prints ``.env`` — it reads
-``os.environ`` directly. Secrets are referenced by NAME only and are masked in
-every repr/status/error.
+BUILD_PLAN.md §3. At module-import time the runtime calls `load_dotenv(override=False)`
+to populate os.environ from a local, Git-ignored `.env` file (the owner's startup
+convenience); existing OS-environment variables always take precedence.
+
+Security model:
+- The APPLICATION may load .env via python-dotenv (a standard library).
+- An AI/operator MUST NEVER open, read, print, parse, or expose .env contents.
+- Values loaded from .env are never logged or included in error messages.
+- Secrets are masked in every repr/status/error; only variable NAMES appear.
 
 Contract:
 - The eight canonical variables are the only supported names.
@@ -18,6 +24,13 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from typing import Mapping, Optional
+
+from dotenv import load_dotenv
+
+# Populate os.environ from the local .env (if present). override=False ensures
+# that real environment variables always take precedence. This is a runtime
+# convenience; the AI/operator never opens or inspects .env.
+load_dotenv(override=False)
 
 # --- Canonical environment-variable NAMES (values are never recorded here). ---
 ENV_METERLESS_BASE_URL = "METERLESS_BASE_URL"
@@ -112,8 +125,10 @@ class Settings:
     ) -> "Settings":
         """Build ``Settings`` from an environment mapping (default: os.environ).
 
-        Reads only canonical names; legacy aliases are ignored. Never reads a
-        ``.env`` file.
+        Reads only canonical names; legacy aliases are ignored. At module import
+        time, `load_dotenv(override=False)` populates os.environ from a local
+        .env file (values never logged/exposed; real env vars take precedence).
+        Tests inject a custom mapping to avoid reading the developer .env.
         """
         env = os.environ if environ is None else environ
         return cls(

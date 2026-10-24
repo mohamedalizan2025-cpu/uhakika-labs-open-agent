@@ -1,7 +1,7 @@
 // Client-side mirror of the backend Pydantic contract (agent/models.py).
-// These types describe the `POST /run` request/response only. No field here
-// carries a conclusion — every result value is supplied by the backend at
-// runtime (see AGENTS.md no-hardcoded-conclusions rule).
+// These types describe the `POST /run` request/response and `GET /health`
+// readiness. No field carries a conclusion — every result value is supplied by
+// the backend at runtime.
 
 export type HypothesisId = "H1" | "H2" | "H3" | "H4" | "H5";
 
@@ -19,7 +19,7 @@ export type ApprovalStatus =
 export interface RunRequest {
   question: string;
   invoice_id: string;
-  sample_mode?: boolean;
+  sample_mode: boolean; // REQUIRED — explicit per request, never omitted
 }
 
 export interface Evidence {
@@ -58,6 +58,19 @@ export interface RunResponse {
   trace: TraceEntry[];
 }
 
+export interface IntegrationStatus {
+  status: string;
+  missing: string[];
+}
+
 export interface HealthResponse {
   ok: boolean;
+  default_mode: "sample" | "live";
+  sample_ready: boolean;
+  live_ready: boolean;
+  integrations: {
+    zetaris: IntegrationStatus;
+    nightshift: IntegrationStatus;
+  };
+  missing_env_names: string[];
 }

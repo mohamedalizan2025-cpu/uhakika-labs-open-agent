@@ -2,15 +2,16 @@
 # Direct dependencies are pinned here (never a machine-specific pip freeze).
 # One transitive (`starlette`) is also pinned for reproducibility — see below.
 #
-# NOTE: python-dotenv is intentionally NOT used. The application must never open
-# or read `.env` (AGENTS.md §3 security), so configuration reads `os.environ`
-# directly instead of loading a .env file.
+# .env loading: the application uses python-dotenv at startup to load a local,
+# Git-ignored .env file into os.environ (override=False so real env vars take
+# precedence). No AI/operator ever opens, reads, prints, or parses .env manually.
 
 fastapi==0.162.0
 uvicorn==0.54.0
 httpx==0.28.1
 pytest==9.1.1
 pydantic==2.14.1
+python-dotenv==1.1.0
 
 # Reproducibility pin (Phase 8): `starlette` is a transitive dependency of
 # FastAPI, but its TestClient import emits a version-dependent deprecation

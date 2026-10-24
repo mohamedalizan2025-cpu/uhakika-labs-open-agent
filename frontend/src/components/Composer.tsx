@@ -16,10 +16,12 @@ export function Composer({
   loading,
   disabled,
   onSubmit,
+  mode,
 }: {
   loading: boolean;
   disabled: boolean;
   onSubmit: (request: RunRequest) => void;
+  mode: "sample" | "live";
 }) {
   const [question, setQuestion] = useState(
     "Why hasn't this invoice been paid, and what should we do about it?",
@@ -31,7 +33,7 @@ export function Composer({
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!canSubmit) return;
-    onSubmit({ question: question.trim(), invoice_id: invoiceId.trim(), sample_mode: true });
+    onSubmit({ question: question.trim(), invoice_id: invoiceId.trim(), sample_mode: mode === "sample" });
   }
 
   return (

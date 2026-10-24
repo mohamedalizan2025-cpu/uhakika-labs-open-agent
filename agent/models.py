@@ -1,11 +1,10 @@
-"""Domain + API data models (Pydantic contracts) — schemas only.
+"""Domain + API data models (Pydantic contracts).
 
 These define the shape of a case and the `POST /run` request/response contract
-(see ARCHITECTURE.md §3b and §10 and DATA_CONTRACT.md §11). Defining the
-contract is NOT the same as implementing the endpoint: `POST /run` and all
-investigation logic are added only in a later approved phase (Phase 4). No
-business logic, endpoints, or conclusions live here, and no field may hardcode a
-credential or model route.
+(see ARCHITECTURE.md §10 and DATA_CONTRACT.md §11). The endpoints ARE implemented
+(Phase 4+) in agent/main.py; these schemas are the live contract used by both
+backend and frontend. No business logic or conclusions live in this module —
+schemas only. No field may hardcode a credential or model route.
 """
 from __future__ import annotations
 
@@ -58,11 +57,16 @@ class TraceEntry(BaseModel):
 
 
 class RunRequest(BaseModel):
-    """Conceptual request contract for the future `POST /run` endpoint."""
+    """Request contract for the judge-facing `POST /run` endpoint.
+
+    `sample_mode` is REQUIRED and explicit: the caller must declare whether it
+    wants the credential-free fixture pipeline (true) or the live path (false).
+    The server never silently overrides or falls back between modes.
+    """
 
     question: str
     invoice_id: str
-    sample_mode: bool = True
+    sample_mode: bool  # required — no implicit default
 
 
 class RejectedHypothesis(BaseModel):

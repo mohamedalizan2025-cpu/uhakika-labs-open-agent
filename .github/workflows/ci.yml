@@ -1,11 +1,11 @@
 name: CI
 
-# Credential-free reproducibility gate (BUILD_PLAN Phase 8):
-# - Backend: install pinned deps and run the pytest suite (sample mode needs no
-#   credentials and never reads .env).
-# - Frontend: clean install from the lockfile and type-check + production build.
+# Credential-free reproducibility gate:
+# - Backend: install pinned deps and run the pytest suite.
+# - Frontend: clean install from lockfile, run Vitest, type-check + production build.
 # No secrets are referenced; the workflow must pass on a fresh clone with an
-# empty environment.
+# empty environment. (.env is Git-ignored and loaded only by the app runtime,
+# never by CI or the AI/operator.)
 
 on:
   push:
@@ -21,16 +21,16 @@ jobs:
     name: Backend tests (credential-free)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Guard — no committed .env
         run: |
           if [ -f .env ]; then
-            echo "::error::.env must never be committed; the app reads os.environ only."
+            echo "::error::.env must never be committed; the app loads it only at local runtime via python-dotenv."
             exit 1
           fi
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -48,15 +48,15 @@ jobs:
         run: python -m pytest -q
 
   frontend:
-    name: Frontend build
+    name: Frontend tests + build
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "20"
           cache: npm
@@ -64,6 +64,9 @@ jobs:
 
       - name: Clean install from lockfile
         run: npm ci
+
+      - name: Runtime tests (Vitest)
+        run: npm run test:run
 
       - name: Type-check and build
         run: npm run build

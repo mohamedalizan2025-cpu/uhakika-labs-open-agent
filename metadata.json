@@ -29,7 +29,7 @@
   },
   "sponsor_technology": {
     "zetaris": {
-      "role": "Mandatory live data layer for all business evidence.",
+      "role": "Mandatory data layer for all business evidence (live-mode invariant).",
       "status": "wired_in_sample_mode_over_synthetic_fixtures",
       "live_status": "pending_live_credentials_and_contract_validation"
     },
@@ -67,9 +67,11 @@
   },
   "quality": {
     "backend_tests": 68,
-    "ci": "GitHub Actions (credential-free backend pytest + frontend build) green on clean clone",
+    "frontend_tests": 14,
+    "ci": "GitHub Actions (backend pytest + frontend Vitest + build) green on clean clone",
     "secrets_committed": false,
-    "env_read_by_app": false
+    "env_loaded_by_app_runtime": true,
+    "env_read_by_operator": false
   },
   "status": {
     "completed_phases": ["1", "2", "3", "4", "5", "7", "8", "9"],

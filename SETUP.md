@@ -4,8 +4,10 @@ This is the local setup, usage, and reproducibility guide for **Uhakika Labs —
 Institutional Contract Revenue Assurance**. The public-facing README is produced
 in Phase 9; this document is the engineering runbook.
 
-Everything here runs **credential-free in sample mode**. The application never
-opens, reads, or prints `.env` — it reads `os.environ` only (see `agent/config.py`).
+Everything here runs **credential-free in sample mode**. The `.env` file is
+Git-ignored and loaded only by the runtime configuration mechanism via
+`python-dotenv` (values are never logged or exposed). The AI/operator never
+opens, reads, displays, or reports `.env` contents.
 
 ---
 
@@ -31,20 +33,25 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-`requirements.txt` pins the direct dependencies only (fastapi, uvicorn, httpx,
-pytest, pydantic). `python-dotenv` is intentionally absent — the app must not
-load `.env`.
+`requirements.txt` pins the direct dependencies (fastapi, uvicorn, httpx, pytest,
+pydantic, python-dotenv) plus one transitive for reproducibility (starlette).
 
 Run the API (sample mode):
 
-```bash
-set SAMPLE_MODE=true              # Windows cmd (export SAMPLE_MODE=true on *nix)
+```cmd
+set SAMPLE_MODE=true
 .venv\Scripts\python.exe -m uvicorn agent.main:app --reload --port 8000
 ```
 
-- `GET  /health` → `{"ok": true}` (liveness).
-- `POST /run` → runs the real sample pipeline over the CSV fixtures and derives a
-  grounded conclusion at runtime.
+Alternatively, create a local `.env` in the repo root (Git-ignored) with:
+```
+SAMPLE_MODE=true
+```
+The application loads it automatically via `python-dotenv` (OS env vars take
+precedence over `.env`).
+
+- `GET  /health` → operational readiness (ok, default_mode, sample_ready, live_ready, integrations, missing_env_names).
+- `POST /run` → runs the investigation pipeline; `sample_mode` is required in every request.
 
 > `SAMPLE_MODE` defaults to **false**. If it is unset the app attempts live mode,
 > which fails closed with a NAMES-only configuration error until the canonical
@@ -76,10 +83,12 @@ ignored, never read or migrated.
 cd frontend
 npm ci                            # clean install from package-lock.json
 npm run dev                       # http://localhost:5173 (proxies /health, /run to :8000)
+npm run test:run                  # run Vitest runtime tests
 ```
 
 - Start the backend first (section 2), then `npm run dev`, then open the preview.
-- Try the sample inputs `INV-004`, `INV-005`, `INV-006` (chips in the composer).
+- The guided-demo button fires INV-004 (sample mode) on click — page load alone does NOT auto-run.
+- To enable auto-run on page load for hackathon video capture: set `VITE_DEMO_AUTORUN=true` in `frontend/.env`.
 - Production build / type-check: `npm run build` (runs `tsc -b && vite build`).
 
 The dev server proxies `/health` and `/run` to `http://localhost:8000`; no API
@@ -91,7 +100,10 @@ host or credential is hardcoded in the UI.
 
 ```bash
 # from the repo root
-.venv\Scripts\python.exe -m pytest -q
+.venv\Scripts\python.exe -m pytest -q     # 68 tests
+
+# frontend
+cd frontend && npm run test:run            # 14 Vitest tests
 ```
 
 The warning policy lives in `pytest.ini` (first-party `UserWarning`s are promoted
@@ -124,7 +136,7 @@ git clone <repo> && cd <repo>
 python -m venv .venv && .venv\Scripts\activate
 pip install -r requirements.txt
 python -m pytest -q                              # green with no env vars set
-cd frontend && npm ci && npm run build               # green
+cd frontend && npm ci && npm run test:run && npm run build   # green
 ```
 
 GitHub Actions (`.github/workflows/ci.yml`) runs exactly this on every push to
@@ -148,8 +160,9 @@ GitHub Actions (`.github/workflows/ci.yml`) runs exactly this on every push to
 - **No hardcoded conclusions** — conclusions are derived at runtime by the
   evaluator rule engine; tests remove CMP-005 and assert H4 downgrades. No
   component or module stores a hero answer.
-- **All business evidence via Zetaris** — `EvidenceAgent` only ever queries
-  through `ZetarisAdapter.run_query` (one statement, fresh request id per call).
+- **All business evidence via Zetaris (live-mode invariant)** — in live mode,
+  `EvidenceAgent` only queries through `ZetarisAdapter.run_query`. The sample
+  adapter uses fixture CSVs and is NOT Zetaris sponsor proof.
 - **All product AI via Nightshift** — the live runtime is reached only through
   `NightshiftAdapter` (Phase 6, not yet wired); sample mode makes **no** model
   call and the trace reports `model_route: none`.

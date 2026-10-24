@@ -42,8 +42,7 @@ Runbook against the sample-mode stack (see `SETUP.md`):
    decisions, retry counts, cited evidence IDs; **no** chain-of-thought, **no**
    secrets. Click **Approve** and note it is a local, explain-only acknowledgement
    (ActionAgent is a deferred stretch).
-6. **Close (20s).** Sponsor boundaries: all business evidence via Zetaris; all
-   product AI via Nightshift; the live path is honestly gated (see §5).
+6. **Close (20s).** Sponsor boundaries: all business evidence via Zetaris (live-mode invariant; sample mode uses the fixture adapter); all product AI via Nightshift; the live path is honestly gated (see §5).
 
 **Backup if the UI is unavailable:** `POST /run` directly, or the committed
 `output_examples/INV-004.json` … `INV-006.json`.
@@ -60,8 +59,9 @@ Runbook against the sample-mode stack (see `SETUP.md`):
    cited evidence, anti-fabrication (remove CMP-005 ⇒ insufficient).
 5. **Architecture** — the Mermaid flow from `README.md` §3 (3 agents + router,
    one `POST /run`, Zetaris data layer, Nightshift live path gated).
-6. **Sponsor technology** — Zetaris (live), Nightshift/Nemotron/Scout Intent
-   (runtime, gated); what is proven now vs. what the live phase will prove.
+6. **Sponsor technology** — Zetaris (fixture-adapter in sample; live pending
+   Phase 6), Nightshift/Nemotron/Scout Intent (runtime, gated); what is proven
+   now vs. what the live phase will prove.
 7. **Status & roadmap** — thin slice solid; Phase 6 secrets pending; deferred
    ActionAgent/World Model; clean reproducibility (CI, tests, artifacts).
 
@@ -71,7 +71,7 @@ Runbook against the sample-mode stack (see `SETUP.md`):
 
 | # | Shot | Source |
 |---|------|--------|
-| 1 | Workspace, empty + service badge "Sample mode" | `http://localhost:5173` before a run |
+| 1 | Workspace, empty + guided-demo button + mode toggle | `http://localhost:5173` before any run |
 | 2 | Hero result `INV-004` — revenue + H4 supported + H1/H2/H3 rejected | after run |
 | 3 | Evidence panel — CMP-005 + contract clause cited | hero result |
 | 4 | Trace panel expanded — actions, retries, `model_route: none` | hero result |

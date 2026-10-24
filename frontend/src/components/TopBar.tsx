@@ -1,4 +1,4 @@
-import { CircleDot, ShieldCheck, FlaskConical } from "lucide-react";
+import { CircleDot, ShieldCheck, FlaskConical, Zap } from "lucide-react";
 
 export type BackendStatus = "online" | "offline" | "checking";
 
@@ -22,7 +22,61 @@ function StatusPill({ status }: { status: BackendStatus }) {
   );
 }
 
-export function TopBar({ status }: { status: BackendStatus }) {
+function ModeToggle({
+  mode,
+  liveReady,
+  onChange,
+}: {
+  mode: "sample" | "live";
+  liveReady: boolean;
+  onChange: (m: "sample" | "live") => void;
+}) {
+  return (
+    <div className="flex items-center rounded-lg bg-slate-800/60 p-0.5 ring-1 ring-inset ring-slate-700">
+      <button
+        type="button"
+        onClick={() => onChange("sample")}
+        className={
+          "rounded-md px-2.5 py-1 text-xs font-medium transition " +
+          (mode === "sample"
+            ? "bg-emerald-500/15 text-emerald-300"
+            : "text-slate-400 hover:text-slate-200")
+        }
+      >
+        <FlaskConical className="mr-1 inline h-3.5 w-3.5" />
+        Sample
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("live")}
+        disabled={!liveReady}
+        className={
+          "rounded-md px-2.5 py-1 text-xs font-medium transition " +
+          (mode === "live"
+            ? "bg-blue-500/15 text-blue-300"
+            : "text-slate-400 hover:text-slate-200") +
+          (!liveReady ? " cursor-not-allowed opacity-40" : "")
+        }
+        title={!liveReady ? "Live mode not configured" : undefined}
+      >
+        <Zap className="mr-1 inline h-3.5 w-3.5" />
+        Live
+      </button>
+    </div>
+  );
+}
+
+export function TopBar({
+  status,
+  liveReady,
+  mode,
+  onModeChange,
+}: {
+  status: BackendStatus;
+  liveReady: boolean;
+  mode: "sample" | "live";
+  onModeChange: (m: "sample" | "live") => void;
+}) {
   return (
     <header className="sticky top-0 z-10 border-b border-slate-800 bg-slate-950/80 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3.5">
@@ -38,10 +92,7 @@ export function TopBar({ status }: { status: BackendStatus }) {
           </div>
         </div>
         <div className="flex items-center gap-2.5">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-300 ring-1 ring-inset ring-amber-500/30">
-            <FlaskConical className="h-3.5 w-3.5" />
-            Sample mode
-          </span>
+          <ModeToggle mode={mode} liveReady={liveReady} onChange={onModeChange} />
           <StatusPill status={status} />
         </div>
       </div>

@@ -27,7 +27,14 @@ def test_health_endpoint_returns_ok() -> None:
     client = _sample_client()
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"ok": True}
+    body = response.json()
+    assert body["ok"] is True
+    assert body["default_mode"] == "sample"
+    assert body["sample_ready"] is True
+    assert body["live_ready"] is False
+    # Missing names only — never values.
+    assert isinstance(body["missing_env_names"], list)
+    assert all(isinstance(n, str) for n in body["missing_env_names"])
 
 
 def test_run_hero_invoice_derives_grounded_conclusion() -> None:
